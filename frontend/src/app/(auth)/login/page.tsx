@@ -1,0 +1,150 @@
+'use client';
+
+import { useState, useRef } from 'react';
+import Link from 'next/link';
+import { useGSAP } from '@gsap/react';
+import { gsap } from '@/lib/gsapConfig';
+import { Input } from '@/components/ui/Input';
+import { Button } from '@/components/ui/Button';
+import { Card } from '@/components/ui/Card';
+import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/contexts/AuthContext';
+import api from '@/lib/api';
+import { Mail, Lock } from 'lucide-react';
+
+export default function LoginPage() {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  const { toast } = useToast();
+  const { login } = useAuth();
+
+  useGSAP(() => {
+    // Entrance animations
+    const tl = gsap.timeline();
+    tl.from('.auth-header', { y: -20, opacity: 0, duration: 0.5, ease: 'power3.out' })
+      .from('.auth-field', { y: 20, opacity: 0, duration: 0.4, stagger: 0.1, ease: 'power2.out' }, '-=0.2')
+      .from('.auth-action', { scale: 0.95, opacity: 0, duration: 0.3, ease: 'back.out(1.5)' }, '-=0.1');
+  }, { scope: containerRef });
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!email) newErrors.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Invalid email address';
+    if (!password) newErrors.password = 'Password is required';
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
+
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const res = await api.post<any>('/auth/login', { email, password, rememberMe });
+      if (res.success && res.data) {
+        toast({ type: 'success', message: 'Welcome back!' });
+        login(res.data.token, res.data.user);
+      }
+    } catch (err: any) {
+      if (err.errors) {
+        // Validation errors from server
+        const serverErrors: Record<string, string> = {};
+        err.errors.forEach((e: any) => { serverErrors[e.field] = e.message; });
+        setErrors(serverErrors);
+      } else {
+        toast({ type: 'error', message: err.message || 'Login failed' });
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div ref={containerRef}>
+      <Card glass className="p-xl border-border-hover shadow-xl">
+        <div className="auth-header text-center mb-xl">
+          <div className="text-4xl mb-sm">⚡</div>
+          <h1 className="text-2xl font-bold text-gradient mb-xs">Welcome Back</h1>
+          <p className="text-muted text-sm">Sign in to your Life OS</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-md">
+          <div className="auth-field">
+            <Input
+              label="Email"
+              type="email"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              leftIcon={<Mail size={18} />}
+              error={errors.email}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="auth-field">
+            <Input
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              leftIcon={<Lock size={18} />}
+              error={errors.password}
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="auth-field flex items-center justify-between mt-sm mb-md">
+            <label className="flex items-center gap-sm cursor-pointer group">
+              <input 
+                type="checkbox" 
+                className="w-4 h-4 rounded border-border-default bg-bg-input text-primary focus:ring-primary focus:ring-offset-bg-card accent-primary"
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
+                disabled={isLoading}
+              />
+              <span className="text-sm text-secondary group-hover:text-primary transition-colors">
+                Remember me
+              </span>
+            </label>
+            
+            <Link 
+              href="/forgot-password" 
+              className="text-sm text-primary-light hover:text-primary transition-colors"
+            >
+              Forgot password?
+            </Link>
+          </div>
+
+          <div className="auth-action">
+            <Button 
+              type="submit" 
+              fullWidth 
+              size="lg" 
+              isLoading={isLoading}
+            >
+              Sign In
+            </Button>
+          </div>
+        </form>
+
+        <div className="auth-action mt-lg text-center text-sm text-muted">
+          Don't have an account?{' '}
+          <Link href="/register" className="text-primary-light hover:text-primary font-medium transition-colors">
+            Create one
+          </Link>
+        </div>
+      </Card>
+    </div>
+  );
+}
