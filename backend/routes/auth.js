@@ -18,6 +18,10 @@ const {
   verifyOtp,
   resetPassword,
 } = require('../controllers/authController');
+const {
+  getGoogleAuthUrl,
+  googleAuthCallback,
+} = require('../controllers/googleAuthController');
 
 // Public routes (with rate limiting)
 router.post('/register', authLimiter, registerValidation, register);
@@ -25,6 +29,10 @@ router.post('/login', authLimiter, loginValidation, login);
 router.post('/forgot-password', otpLimiter, forgotPasswordValidation, forgotPassword);
 router.post('/verify-otp', otpLimiter, verifyOtpValidation, verifyOtp);
 router.post('/reset-password', otpLimiter, resetPasswordValidation, resetPassword);
+
+// Google OAuth routes
+router.get('/google/url', getGoogleAuthUrl);
+router.post('/google/callback', googleAuthCallback);
 
 // Protected routes
 router.get('/me', auth, getMe);
