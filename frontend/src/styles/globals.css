@@ -8,15 +8,15 @@
 
 /* ─── CSS Custom Properties ─────────────────────────────────────── */
 :root {
-  /* Brand Colors — Vibrant gradient palette */
-  --color-primary: #8b5cf6;          /* Violet */
-  --color-primary-light: #a78bfa;
-  --color-primary-dark: #7c3aed;
-  --color-primary-glow: rgba(139, 92, 246, 0.4);
+  /* Brand Colors — Midnight Aurora (Sleek Cyan/Sapphire) */
+  --color-primary: #0ea5e9;          /* Cyan / Sky Blue */
+  --color-primary-light: #38bdf8;
+  --color-primary-dark: #0284c7;
+  --color-primary-glow: rgba(14, 165, 233, 0.4);
   
-  --color-secondary: #06b6d4;        /* Cyan */
-  --color-secondary-light: #22d3ee;
-  --color-secondary-dark: #0891b2;
+  --color-secondary: #10b981;        /* Emerald / Teal */
+  --color-secondary-light: #34d399;
+  --color-secondary-dark: #059669;
   
   --color-accent: #f59e0b;           /* Amber */
   --color-accent-light: #fbbf24;
@@ -39,25 +39,25 @@
   --color-info-bg: rgba(59, 130, 246, 0.1);
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%);
-  --gradient-secondary: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%);
+  --gradient-primary: linear-gradient(135deg, #0284c7 0%, #14b8a6 100%);
+  --gradient-secondary: linear-gradient(135deg, #10b981 0%, #0ea5e9 100%);
   --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
-  --gradient-cool: linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%);
-  --gradient-emerald: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  --gradient-cool: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 100%);
+  --gradient-emerald: linear-gradient(135deg, #059669 0%, #10b981 100%);
   --gradient-sunset: linear-gradient(135deg, #f472b6 0%, #f59e0b 100%);
-  --gradient-bg: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1628 100%);
-  --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.05) 0%, rgba(255,255,255,0.02) 100%);
+  --gradient-bg: linear-gradient(135deg, #050a15 0%, #081229 50%, #040d1a 100%);
+  --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0.01) 100%);
 
-  /* Backgrounds — Deep dark with subtle warmth */
-  --bg-primary: #0a0a1a;
-  --bg-secondary: #111128;
-  --bg-tertiary: #1a1a36;
-  --bg-card: rgba(26, 26, 54, 0.8);
-  --bg-card-hover: rgba(30, 30, 62, 0.9);
-  --bg-glass: rgba(17, 17, 40, 0.6);
-  --bg-input: rgba(26, 26, 54, 0.6);
-  --bg-sidebar: rgba(10, 10, 26, 0.95);
-  --bg-modal-overlay: rgba(0, 0, 0, 0.7);
+  /* Backgrounds — Ultra Dark Sapphire */
+  --bg-primary: #030712;
+  --bg-secondary: #0b1120;
+  --bg-tertiary: #111827;
+  --bg-card: rgba(11, 17, 32, 0.85);
+  --bg-card-hover: rgba(17, 24, 39, 0.95);
+  --bg-glass: rgba(3, 7, 18, 0.7);
+  --bg-input: rgba(17, 24, 39, 0.7);
+  --bg-sidebar: rgba(3, 7, 18, 0.95);
+  --bg-modal-overlay: rgba(0, 0, 0, 0.8);
 
   /* Text */
   --text-primary: #f0f0f8;
@@ -69,8 +69,8 @@
   /* Borders */
   --border-subtle: rgba(255, 255, 255, 0.06);
   --border-default: rgba(255, 255, 255, 0.1);
-  --border-hover: rgba(139, 92, 246, 0.3);
-  --border-focus: rgba(139, 92, 246, 0.6);
+  --border-hover: rgba(14, 165, 233, 0.3);
+  --border-focus: rgba(14, 165, 233, 0.6);
 
   /* Shadows */
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
@@ -78,7 +78,7 @@
   --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.6);
   --shadow-glow: 0 0 20px var(--color-primary-glow);
-  --shadow-glow-sm: 0 0 10px rgba(139, 92, 246, 0.2);
+  --shadow-glow-sm: 0 0 10px rgba(14, 165, 233, 0.2);
   --shadow-inner: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 
   /* Spacing */
@@ -241,18 +241,18 @@ ul, ol {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(14, 165, 233, 0.3);
   border-radius: var(--radius-full);
   transition: background var(--transition-fast);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(139, 92, 246, 0.5);
+  background: rgba(14, 165, 233, 0.5);
 }
 
 /* ─── Selection ─────────────────────────────────────────────────── */
 ::selection {
-  background: rgba(139, 92, 246, 0.3);
+  background: rgba(14, 165, 233, 0.3);
   color: var(--text-primary);
 }
 
@@ -415,9 +415,9 @@ ul, ol {
 }
 
 .badge-primary {
-  background: rgba(139, 92, 246, 0.1);
+  background: rgba(14, 165, 233, 0.1);
   color: var(--color-primary-light);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  border: 1px solid rgba(14, 165, 233, 0.2);
 }
 
 /* ─── Loading Skeleton ──────────────────────────────────────────── */

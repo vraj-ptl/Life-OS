@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
+import { AuthBackground } from '@/components/ui/AuthBackground';
 
 export default function AuthLayout({
   children,
@@ -29,11 +30,9 @@ export default function AuthLayout({
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-primary/10 blur-[100px] animate-pulse-scale" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-secondary/10 blur-[100px] animate-pulse-scale delay-500" />
+      <AuthBackground />
       
-      <div className="w-full max-w-md z-10">
+      <div className="w-full z-10 relative" style={{ maxWidth: '400px' }}>
         {children}
       </div>
     </div>

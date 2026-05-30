@@ -81,7 +81,7 @@ export default function LoginPage() {
 
   return (
     <div ref={containerRef}>
-      <Card glass className="p-xl border-border-hover shadow-xl">
+      <Card glass className="p-lg border-border-hover shadow-glow-sm hover:shadow-glow transition-shadow duration-500">
         <div className="auth-header text-center mb-xl">
           <div className="text-4xl mb-sm">⚡</div>
           <h1 className="text-2xl font-bold text-gradient mb-xs">Welcome Back</h1>

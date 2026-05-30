@@ -22,7 +22,7 @@ export default function RegisterPage() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
-  
+
   const { toast } = useToast();
   const { login } = useAuth();
 
@@ -35,7 +35,6 @@ export default function RegisterPage() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
-    // Clear error for this field
     if (errors[e.target.name]) {
       setErrors({ ...errors, [e.target.name]: '' });
     }
@@ -56,17 +55,17 @@ export default function RegisterPage() {
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.email) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = 'Invalid email address';
-    
+
     if (!formData.password) newErrors.password = 'Password is required';
     else if (formData.password.length < 6) newErrors.password = 'Must be at least 6 characters';
     else if (!/[a-zA-Z]/.test(formData.password) || !/[0-9]/.test(formData.password)) {
       newErrors.password = 'Must contain letters and numbers';
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -78,12 +77,12 @@ export default function RegisterPage() {
     setIsLoading(true);
 
     try {
-      const res = await api.post<any>('/auth/register', { 
-        name: formData.name, 
-        email: formData.email, 
-        password: formData.password 
+      const res = await api.post<any>('/auth/register', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password
       });
-      
+
       if (res.success && res.data) {
         toast({ type: 'success', message: 'Account created!', description: 'Welcome to Life OS.' });
         login(res.data.token, res.data.user);
@@ -103,7 +102,7 @@ export default function RegisterPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const res = await api.get<{url: string}>('/auth/google/url');
+      const res = await api.get<{ url: string }>('/auth/google/url');
       if (res.success && res.data?.url) {
         window.location.href = res.data.url;
       }
@@ -116,7 +115,7 @@ export default function RegisterPage() {
 
   return (
     <div ref={containerRef}>
-      <Card glass className="p-xl border-border-hover shadow-xl">
+      <Card glass className="p-lg border-border-hover shadow-glow-sm hover:shadow-glow transition-shadow duration-500">
         <div className="auth-header text-center mb-lg">
           <div className="text-4xl mb-sm">🚀</div>
           <h1 className="text-2xl font-bold text-gradient mb-xs">Create Account</h1>
@@ -166,12 +165,11 @@ export default function RegisterPage() {
             {formData.password && !errors.password && (
               <div className="flex gap-1 mt-2">
                 {[1, 2, 3, 4, 5].map((i) => (
-                  <div 
-                    key={i} 
-                    className={`h-1 flex-1 rounded-full ${
-                      i <= pwdStrength 
-                        ? (pwdStrength < 3 ? 'bg-warning-light' : pwdStrength < 4 ? 'bg-info-light' : 'bg-success-light') 
-                        : 'bg-border-default'
+                  <div
+                    key={i}
+                    className={`h-1 flex-1 rounded-full ${i <= pwdStrength
+                      ? (pwdStrength < 3 ? 'bg-warning-light' : pwdStrength < 4 ? 'bg-info-light' : 'bg-success-light')
+                      : 'bg-border-default'
                     }`}
                   />
                 ))}
@@ -194,10 +192,10 @@ export default function RegisterPage() {
           </div>
 
           <div className="auth-action">
-            <Button 
-              type="submit" 
-              fullWidth 
-              size="lg" 
+            <Button
+              type="submit"
+              fullWidth
+              size="lg"
               isLoading={isLoading}
             >
               Sign Up
@@ -210,12 +208,12 @@ export default function RegisterPage() {
               <span className="flex-shrink-0 mx-4 text-muted text-sm">Or sign up with</span>
               <div className="flex-grow border-t border-border-default"></div>
             </div>
-            
-            <Button 
-              type="button" 
-              variant="outline" 
-              fullWidth 
-              size="lg" 
+
+            <Button
+              type="button"
+              variant="outline"
+              fullWidth
+              size="lg"
               onClick={handleGoogleLogin}
               disabled={isLoading}
               className="mt-sm"
