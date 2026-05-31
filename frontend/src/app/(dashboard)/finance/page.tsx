@@ -224,57 +224,80 @@ export default function FinancePage() {
       )}
 
       {/* Transaction Modal */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Add Transaction">
-        <form onSubmit={handleSaveTransaction} className="flex flex-col gap-md pt-2">
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={`Add ${txType === 'income' ? 'Income' : 'Expense'}`} size="md">
+        <form onSubmit={handleSaveTransaction} className="flex flex-col gap-lg">
           
-          <div className="flex bg-input border border-border-default rounded-md overflow-hidden p-1">
-            <button
-              type="button"
-              className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${txType === 'expense' ? 'bg-danger text-white' : 'text-secondary hover:text-primary'}`}
-              onClick={() => { setTxType('expense'); setFormData({...formData, category: EXPENSE_CATEGORIES[0]})}}
-            >
-              Expense
-            </button>
-            <button
-              type="button"
-              className={`flex-1 py-2 rounded text-sm font-medium transition-colors ${txType === 'income' ? 'bg-success text-white' : 'text-secondary hover:text-primary'}`}
-              onClick={() => { setTxType('income'); setFormData({...formData, category: INCOME_CATEGORIES[0]})}}
-            >
-              Income
-            </button>
+          {/* Transaction Type Toggle */}
+          <div>
+            <label className="block text-sm font-semibold text-primary mb-3">Transaction Type</label>
+            <div className="flex gap-3 bg-card border border-border-default rounded-lg p-2">
+              <button
+                type="button"
+                className={`flex-1 py-3 px-4 rounded-md font-semibold text-sm transition-all ${
+                  txType === 'expense' 
+                    ? 'bg-danger text-white shadow-lg shadow-danger/20' 
+                    : 'text-secondary hover:text-primary hover:bg-white/5'
+                }`}
+                onClick={() => { setTxType('expense'); setFormData({...formData, category: EXPENSE_CATEGORIES[0]})}}
+              >
+                <ArrowDownRight size={16} className="inline mr-2" />
+                Expense
+              </button>
+              <button
+                type="button"
+                className={`flex-1 py-3 px-4 rounded-md font-semibold text-sm transition-all ${
+                  txType === 'income' 
+                    ? 'bg-success text-white shadow-lg shadow-success/20' 
+                    : 'text-secondary hover:text-primary hover:bg-white/5'
+                }`}
+                onClick={() => { setTxType('income'); setFormData({...formData, category: INCOME_CATEGORIES[0]})}}
+              >
+                <ArrowUpRight size={16} className="inline mr-2" />
+                Income
+              </button>
+            </div>
           </div>
 
+          {/* Amount Field */}
           <Input
             label="Amount (₹)"
             type="number"
             step="0.01"
+            min="0"
             required
             value={formData.amount}
             onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
             placeholder="0.00"
+            leftIcon={<Wallet size={18} />}
           />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-secondary ml-1">Category</label>
+          {/* Category Field */}
+          <div>
+            <label className="block text-sm font-semibold text-primary mb-2">Category</label>
             <select
-              className="h-12 bg-input border border-border-default rounded-md px-3 text-primary focus:border-primary outline-none transition-all"
+              className="w-full"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              required
             >
-              {(txType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
+              <optgroup label={txType === 'expense' ? 'Expense Categories' : 'Income Categories'}>
+                {(txType === 'expense' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
+          {/* Description Field */}
           <Input
             label="Description"
             required
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="e.g. Groceries"
+            placeholder={`e.g. ${txType === 'expense' ? 'Groceries' : 'Monthly salary'}`}
           />
 
+          {/* Date Field */}
           <Input
             label="Date"
             type="date"
@@ -283,7 +306,8 @@ export default function FinancePage() {
             onChange={(e) => setFormData({ ...formData, date: e.target.value })}
           />
 
-          <Button type="submit" fullWidth className="mt-4">
+          {/* Submit Button */}
+          <Button type="submit" fullWidth className="mt-4" size="lg">
             Add {txType === 'income' ? 'Income' : 'Expense'}
           </Button>
         </form>

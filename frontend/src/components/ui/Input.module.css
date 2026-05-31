@@ -1,7 +1,7 @@
 .wrapper {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   position: relative;
 }
 
@@ -11,47 +11,89 @@
 
 .label {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
-  font-weight: var(--font-medium);
-  margin-left: 2px;
+  font-weight: 600;
+  margin-left: 4px;
+  color: var(--text-primary);
+  letter-spacing: 0.3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  .label {
+    color: #e5e7eb;
+  }
+}
+
+@media (prefers-color-scheme: light) {
+  .label {
+    color: #1f2937;
+  }
 }
 
 .inputContainer {
   position: relative;
   display: flex;
   align-items: center;
-  transition: all var(--transition-fast);
+  transition: all var(--transition-base);
 }
 
 .input {
   width: 100%;
-  height: 48px;
+  height: 44px;
   background: var(--bg-input);
-  border: 1px solid var(--border-default);
+  border: 1.5px solid var(--border-default);
   border-radius: var(--radius-md);
-  color: var(--text-primary);
   font-size: var(--text-base);
   padding: 0 var(--space-md);
   transition: all var(--transition-base);
+  font-weight: 500;
 }
 
-.input::placeholder {
-  color: var(--text-muted);
+@media (prefers-color-scheme: dark) {
+  .input {
+    color: #ffffff;
+    background: rgba(30, 41, 59, 0.6);
+  }
+
+  .input::placeholder {
+    color: #9ca3af;
+  }
+
+  .input:hover:not(:disabled) {
+    border-color: rgba(139, 92, 246, 0.4);
+    background: rgba(30, 41, 59, 0.8);
+  }
+
+  .input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+    background: rgba(30, 41, 59, 0.9);
+  }
 }
 
-.input:hover:not(:disabled) {
-  border-color: rgba(255, 255, 255, 0.2);
-  background: rgba(26, 26, 54, 0.8);
-}
+@media (prefers-color-scheme: light) {
+  .input {
+    color: #000000;
+    background: rgba(249, 250, 251, 0.8);
+  }
 
-.input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.2);
-  background: rgba(26, 26, 54, 0.9);
+  .input::placeholder {
+    color: #6b7280;
+  }
+
+  .input:hover:not(:disabled) {
+    border-color: rgba(139, 92, 246, 0.3);
+    background: rgba(249, 250, 251, 0.95);
+  }
+
+  .input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+    background: rgba(249, 250, 251, 1);
+  }
 }
 
 .input:disabled {
-  opacity: 0.6;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
@@ -66,11 +108,11 @@
 .leftIcon {
   position: absolute;
   left: 12px;
-  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
   pointer-events: none;
+  color: var(--text-muted);
 }
 
 .rightElements {
@@ -82,10 +124,13 @@
 }
 
 .rightIcon, .errorIcon {
-  color: var(--text-muted);
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.rightIcon {
+  color: var(--text-muted);
 }
 
 .errorIcon {
@@ -97,28 +142,43 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
+  padding: 6px;
   border-radius: 4px;
-  transition: color var(--transition-fast);
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
 }
 
 .togglePassword:hover {
   color: var(--text-primary);
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(139, 92, 246, 0.1);
 }
 
 .hasError .input {
-  border-color: rgba(239, 68, 68, 0.5);
+  border-color: rgba(239, 68, 68, 0.6);
 }
 
 .hasError .input:focus {
   border-color: var(--color-danger);
-  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
 }
 
 .errorMessage {
   font-size: var(--text-xs);
-  color: var(--color-danger-light);
-  margin-left: 2px;
-  animation: fadeIn 0.2s ease;
+  color: var(--color-danger);
+  margin-left: 4px;
+  font-weight: 500;
+  animation: slideDown 0.2s ease;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Zap, Clock, Flag, Calendar } from 'lucide-react';
+import { Zap, Clock, Flag, Calendar, FileText } from 'lucide-react';
 
 interface Task {
   _id?: string;
@@ -55,6 +55,10 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.title?.trim()) {
+      alert('Please enter a task title');
+      return;
+    }
     onSave(formData);
   };
 
@@ -77,7 +81,8 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
         </>
       }
     >
-      <form onSubmit={handleSubmit} className="flex flex-col gap-md">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-lg">
+        {/* Task Title */}
         <Input
           label="Task Title"
           value={formData.title}
@@ -87,79 +92,91 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
           autoFocus
         />
 
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-secondary ml-1">Description (Optional)</label>
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+            <FileText size={16} /> Description (Optional)
+          </label>
           <textarea
-            className="w-full min-h-[100px] bg-input border border-border-default rounded-md p-3 text-primary focus:border-primary focus:ring-1 focus:ring-primary/20 outline-none transition-all resize-y"
+            className="w-full min-h-[100px] rounded-lg p-3 font-base resize-none"
             placeholder="Add details, links, or notes..."
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-md">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-secondary ml-1 flex items-center gap-2">
-              <Flag size={14} /> Priority
+        {/* Priority, Duration & Energy in Grid */}
+        <div className="grid grid-cols-2 gap-lg">
+          {/* Priority */}
+          <div>
+            <label className="block text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+              <Flag size={16} /> Priority
             </label>
             <select
-              className="h-12 bg-input border border-border-default rounded-md px-3 text-primary focus:border-primary outline-none transition-all"
+              className="w-full"
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
             >
-              <option value="low">Low (Green)</option>
-              <option value="medium">Medium (Blue)</option>
-              <option value="high">High (Yellow)</option>
-              <option value="urgent">Urgent (Red)</option>
+              <option value="low">🟢 Low</option>
+              <option value="medium">🔵 Medium</option>
+              <option value="high">🟡 High</option>
+              <option value="urgent">🔴 Urgent</option>
             </select>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-secondary ml-1 flex items-center gap-2">
-              <Calendar size={14} /> Deadline
-            </label>
-            <input
-              type="datetime-local"
-              className="h-12 bg-input border border-border-default rounded-md px-3 text-primary focus:border-primary outline-none transition-all"
-              value={formData.deadline}
-              onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-secondary ml-1 flex items-center gap-2">
-              <Clock size={14} /> Duration (mins)
+          {/* Duration */}
+          <div>
+            <label className="block text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+              <Clock size={16} /> Duration (mins)
             </label>
             <input
               type="number"
               min="5"
               step="5"
-              className="h-12 bg-input border border-border-default rounded-md px-3 text-primary focus:border-primary outline-none transition-all"
+              className="w-full h-12 bg-input border border-border-default rounded-lg px-3 text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
               value={formData.estimatedDuration}
               onChange={(e) => setFormData({ ...formData, estimatedDuration: parseInt(e.target.value) || 30 })}
             />
           </div>
+        </div>
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-secondary ml-1 flex items-center gap-2">
-              <Zap size={14} /> Energy Level
-            </label>
-            <div className="flex bg-input border border-border-default rounded-md overflow-hidden h-12">
-              {['low', 'medium', 'high'].map((level) => (
-                <button
-                  key={level}
-                  type="button"
-                  className={`flex-1 flex items-center justify-center capitalize transition-colors ${
-                    formData.energyRequired === level 
-                      ? 'bg-primary/20 text-primary font-medium' 
-                      : 'text-muted hover:bg-white/5'
-                  }`}
-                  onClick={() => setFormData({ ...formData, energyRequired: level as any })}
-                >
-                  {level}
-                </button>
-              ))}
-            </div>
+        {/* Deadline */}
+        <div>
+          <label className="block text-sm font-semibold text-primary mb-2 flex items-center gap-2">
+            <Calendar size={16} /> Deadline
+          </label>
+          <input
+            type="datetime-local"
+            className="w-full h-12 bg-input border border-border-default rounded-lg px-3 text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            value={formData.deadline}
+            onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
+          />
+        </div>
+
+        {/* Energy Level */}
+        <div>
+          <label className="block text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+            <Zap size={16} /> Energy Level Required
+          </label>
+          <div className="grid grid-cols-3 gap-2 bg-card border border-border-default rounded-lg overflow-hidden">
+            {[
+              { level: 'low', label: 'Low 🟢', color: 'bg-success' },
+              { level: 'medium', label: 'Medium 🔵', color: 'bg-info' },
+              { level: 'high', label: 'High 🟡', color: 'bg-warning' }
+            ].map(({ level, label, color }) => (
+              <button
+                key={level}
+                type="button"
+                className={`py-3 px-3 font-semibold text-sm text-center transition-all ${
+                  formData.energyRequired === level
+                    ? `${color} text-white shadow-lg`
+                    : 'text-secondary hover:bg-white/5'
+                }`}
+                onClick={() => setFormData({ ...formData, energyRequired: level as any })}
+              >
+                {label}
+              </button>
+            ))}
           </div>
         </div>
       </form>

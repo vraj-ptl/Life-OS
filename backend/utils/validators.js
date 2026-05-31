@@ -116,9 +116,13 @@ const expenseValidation = [
     .notEmpty().withMessage('Description is required')
     .isLength({ max: 200 }).withMessage('Description cannot exceed 200 characters'),
   body('category')
-    .optional()
-    .isIn(['food', 'transport', 'entertainment', 'shopping', 'bills', 'subscriptions', 'health', 'education', 'other'])
-    .withMessage('Invalid category'),
+    .trim()
+    .notEmpty().withMessage('Category is required')
+    .isLength({ min: 1, max: 50 }).withMessage('Invalid category'),
+  body('type')
+    .trim()
+    .notEmpty().withMessage('Type is required')
+    .isIn(['income', 'expense']).withMessage('Type must be income or expense'),
   body('date')
     .optional()
     .isISO8601().withMessage('Invalid date'),
