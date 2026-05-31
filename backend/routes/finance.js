@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { transactionValidation, mongoIdValidation } = require('../utils/validators');
+const { expenseValidation, mongoIdValidation } = require('../utils/validators');
 const {
   getFinanceData,
   addTransaction,
@@ -12,7 +12,7 @@ router.use(auth);
 
 router.route('/')
   .get(getFinanceData)
-  .post(transactionValidation, addTransaction);
+  .post(expenseValidation, addTransaction);
 
 router.delete('/:id', mongoIdValidation, deleteTransaction);
 
