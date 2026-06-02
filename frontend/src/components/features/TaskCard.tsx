@@ -1,9 +1,14 @@
-import { Clock, Calendar, Zap, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Clock, Calendar, Zap, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, Tag, ListTodo, Repeat } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { getPriorityColor, getStatusColor, formatRelativeDate } from '@/lib/utils';
 import { useState, useRef } from 'react';
 import { gsap } from '@/lib/gsapConfig';
 import { useGSAP } from '@gsap/react';
+
+interface Subtask {
+  title: string;
+  isCompleted: boolean;
+}
 
 interface Task {
   _id: string;
@@ -18,6 +23,12 @@ interface Task {
     startTime: string;
     endTime: string;
     reason: string;
+  };
+  tags?: string[];
+  subtasks?: Subtask[];
+  recurring?: {
+    isRecurring: boolean;
+    frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
   };
 }
 
@@ -102,7 +113,37 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
                   task.energyRequired === 'medium' ? 'text-info' : 'text-success'
                 } />
               </div>
+              
+              {task.subtasks && task.subtasks.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <ListTodo size={14} style={{ marginTop: '-1px' }} />
+                  <span>{task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}</span>
+                </div>
+              )}
+              
+              {task.recurring?.isRecurring && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', color: 'var(--color-primary-light)' }} title={`Recurring: ${task.recurring.frequency}`}>
+                  <Repeat size={14} style={{ marginTop: '-1px' }} />
+                </div>
+              )}
             </div>
+            
+            {/* Tags */}
+            {task.tags && task.tags.length > 0 && (
+              <div style={{ marginTop: 'var(--space-sm)', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                {task.tags.map((tag, i) => (
+                  <span key={i} style={{ 
+                    display: 'inline-flex', alignItems: 'center', gap: '4px', 
+                    padding: '2px 6px', borderRadius: '4px', fontSize: '10px', 
+                    fontWeight: 'var(--font-medium)', background: 'rgba(14, 165, 233, 0.1)', 
+                    color: 'var(--color-primary-light)' 
+                  }}>
+                    <Tag size={10} />
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* AI Suggestion Badge */}
             {task.suggestedTime && !isDone && (

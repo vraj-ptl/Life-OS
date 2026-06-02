@@ -5,8 +5,9 @@ import { TaskCard } from '@/components/features/TaskCard';
 import { TaskModal } from '@/components/features/TaskModal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { Plus, List, Layout, Calendar as CalendarIcon, Loader2 } from 'lucide-react';
+import { Plus, List, Layout, Calendar as CalendarIcon, Loader2, CheckSquare } from 'lucide-react';
 import api from '@/lib/api';
+import styles from './Tasks.module.css';
 
 type ViewMode = 'list' | 'kanban' | 'calendar';
 
@@ -98,33 +99,33 @@ export default function TasksPage() {
   };
 
   return (
-    <div className="flex flex-col gap-xl">
+    <div className={styles.container}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className={styles.header}>
         <div>
-          <h1 className="text-3xl font-bold text-gradient mb-1">Tasks</h1>
-          <p className="text-secondary text-sm">Manage your work with AI scheduling</p>
+          <h1 className={`text-gradient ${styles.headerTitle}`}>Tasks</h1>
+          <p className={styles.headerSubtitle}>Manage your work with AI scheduling</p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className={styles.headerActions}>
           {/* View Toggles */}
-          <div className="flex bg-card border border-border-default rounded-md p-1">
+          <div className={styles.viewToggles}>
             <button 
-              className={`p-1.5 rounded text-muted hover:text-primary transition-colors ${viewMode === 'list' ? 'bg-primary/10 text-primary' : ''}`}
+              className={`${styles.toggleBtn} ${viewMode === 'list' ? styles.toggleBtnActive : ''}`}
               onClick={() => setViewMode('list')}
               title="List View"
             >
               <List size={18} />
             </button>
             <button 
-              className={`p-1.5 rounded text-muted hover:text-primary transition-colors ${viewMode === 'kanban' ? 'bg-primary/10 text-primary' : ''}`}
+              className={`${styles.toggleBtn} ${viewMode === 'kanban' ? styles.toggleBtnActive : ''}`}
               onClick={() => setViewMode('kanban')}
               title="Kanban View"
             >
               <Layout size={18} />
             </button>
             <button 
-              className={`p-1.5 rounded text-muted hover:text-primary transition-colors ${viewMode === 'calendar' ? 'bg-primary/10 text-primary' : ''}`}
+              className={`${styles.toggleBtn} ${viewMode === 'calendar' ? styles.toggleBtnActive : ''}`}
               onClick={() => setViewMode('calendar')}
               title="Calendar View"
             >
@@ -143,16 +144,16 @@ export default function TasksPage() {
 
       {/* Main Content */}
       {isLoading ? (
-        <div className="flex justify-center items-center py-20">
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '80px 0' }}>
           <Loader2 className="animate-spin text-primary" size={40} />
         </div>
       ) : tasks.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 text-center bg-card border border-border-dashed rounded-xl border-dashed">
-          <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center text-primary mb-4">
+        <div className={styles.emptyState}>
+          <div className={styles.emptyIconWrapper}>
             <CheckSquare size={32} />
           </div>
-          <h3 className="text-xl font-semibold mb-2">No tasks yet</h3>
-          <p className="text-secondary max-w-sm mb-6">
+          <h3 className={styles.emptyTitle}>No tasks yet</h3>
+          <p className={styles.emptySubtitle}>
             Create your first task and let Life OS's AI suggest the best time for you to complete it.
           </p>
           <Button onClick={() => { setEditingTask(null); setIsModalOpen(true); }}>
@@ -163,13 +164,13 @@ export default function TasksPage() {
         <>
           {/* LIST VIEW */}
           {viewMode === 'list' && (
-            <div className="flex flex-col gap-lg">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
               {groupedTasks.overdue.length > 0 && (
                 <section>
-                  <h3 className="text-danger font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-danger"></span> Overdue
+                  <h3 className={styles.sectionTitle} style={{ color: 'var(--color-danger)' }}>
+                    <span className={styles.statusDot} style={{ background: 'var(--color-danger)' }}></span> Overdue
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className={styles.tasksGrid}>
                     {groupedTasks.overdue.map(task => (
                       <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
                     ))}
@@ -179,10 +180,10 @@ export default function TasksPage() {
 
               {groupedTasks.todo.length > 0 && (
                 <section>
-                  <h3 className="text-primary-light font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-primary-light"></span> To Do
+                  <h3 className={styles.sectionTitle} style={{ color: 'var(--color-primary-light)' }}>
+                    <span className={styles.statusDot} style={{ background: 'var(--color-primary-light)' }}></span> To Do
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className={styles.tasksGrid}>
                     {groupedTasks.todo.map(task => (
                       <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
                     ))}
@@ -192,10 +193,10 @@ export default function TasksPage() {
 
               {groupedTasks.done.length > 0 && (
                 <section>
-                  <h3 className="text-success font-semibold mb-4 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-success"></span> Completed
+                  <h3 className={styles.sectionTitle} style={{ color: 'var(--color-success)' }}>
+                    <span className={styles.statusDot} style={{ background: 'var(--color-success)' }}></span> Completed
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  <div className={styles.tasksGrid}>
                     {groupedTasks.done.map(task => (
                       <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
                     ))}
@@ -205,16 +206,16 @@ export default function TasksPage() {
             </div>
           )}
 
-          {/* KANBAN VIEW (Simplified for now, true D&D can be added) */}
+          {/* KANBAN VIEW */}
           {viewMode === 'kanban' && (
-            <div className="flex gap-6 overflow-x-auto pb-4 h-[calc(100vh-200px)]">
+            <div className={styles.kanbanBoard}>
               {/* To Do Column */}
-              <div className="flex-1 min-w-[300px] bg-bg-secondary rounded-xl p-4 flex flex-col border border-border-subtle">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-primary-light">To Do</h3>
-                  <span className="bg-card text-xs py-1 px-2 rounded-md">{groupedTasks.todo.length}</span>
+              <div className={styles.kanbanColumn}>
+                <div className={styles.kanbanHeader}>
+                  <h3 className={styles.kanbanTitle} style={{ color: 'var(--color-primary-light)' }}>To Do</h3>
+                  <span className={styles.kanbanCount}>{groupedTasks.todo.length}</span>
                 </div>
-                <div className="flex flex-col gap-3 overflow-y-auto pr-2">
+                <div className={styles.kanbanList}>
                   {groupedTasks.todo.map(task => (
                     <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
                   ))}
@@ -222,12 +223,12 @@ export default function TasksPage() {
               </div>
 
               {/* In Progress Column */}
-              <div className="flex-1 min-w-[300px] bg-bg-secondary rounded-xl p-4 flex flex-col border border-border-subtle">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-info">In Progress</h3>
-                  <span className="bg-card text-xs py-1 px-2 rounded-md">{groupedTasks.inProgress.length}</span>
+              <div className={styles.kanbanColumn}>
+                <div className={styles.kanbanHeader}>
+                  <h3 className={styles.kanbanTitle} style={{ color: 'var(--color-info)' }}>In Progress</h3>
+                  <span className={styles.kanbanCount}>{groupedTasks.inProgress.length}</span>
                 </div>
-                <div className="flex flex-col gap-3 overflow-y-auto pr-2">
+                <div className={styles.kanbanList}>
                   {groupedTasks.inProgress.map(task => (
                     <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
                   ))}
@@ -235,12 +236,12 @@ export default function TasksPage() {
               </div>
 
               {/* Done Column */}
-              <div className="flex-1 min-w-[300px] bg-bg-secondary rounded-xl p-4 flex flex-col border border-border-subtle opacity-80">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-success">Done</h3>
-                  <span className="bg-card text-xs py-1 px-2 rounded-md">{groupedTasks.done.length}</span>
+              <div className={styles.kanbanColumn} style={{ opacity: 0.8 }}>
+                <div className={styles.kanbanHeader}>
+                  <h3 className={styles.kanbanTitle} style={{ color: 'var(--color-success)' }}>Done</h3>
+                  <span className={styles.kanbanCount}>{groupedTasks.done.length}</span>
                 </div>
-                <div className="flex flex-col gap-3 overflow-y-auto pr-2">
+                <div className={styles.kanbanList}>
                   {groupedTasks.done.map(task => (
                     <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
                   ))}
@@ -251,11 +252,11 @@ export default function TasksPage() {
 
           {/* CALENDAR VIEW */}
           {viewMode === 'calendar' && (
-            <div className="bg-card border border-border-default rounded-xl p-8 text-center">
-              <CalendarIcon size={48} className="mx-auto text-muted mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Calendar View</h3>
-              <p className="text-secondary">A full calendar view is planned for Phase 4 integration.</p>
-              <Button variant="outline" className="mt-4" onClick={() => setViewMode('list')}>Back to List</Button>
+            <div className={styles.emptyState}>
+              <CalendarIcon size={48} className="text-muted" style={{ marginBottom: 'var(--space-md)' }} />
+              <h3 className={styles.emptyTitle}>Calendar View</h3>
+              <p className={styles.emptySubtitle}>A full calendar view is planned for Phase 4 integration.</p>
+              <Button variant="outline" onClick={() => setViewMode('list')}>Back to List</Button>
             </div>
           )}
         </>
@@ -270,6 +271,3 @@ export default function TasksPage() {
     </div>
   );
 }
-
-// Ensure lucide icon imports work by declaring a dummy component here if needed, but it's handled at top.
-import { CheckSquare } from 'lucide-react';

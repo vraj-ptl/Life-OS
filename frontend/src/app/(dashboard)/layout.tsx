@@ -30,12 +30,12 @@ export default function DashboardLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col h-screen overflow-hidden relative">
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden', position: 'relative' }}>
         <TopBar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-xl scroll-smooth">
-          <div className="max-w-[var(--content-max-width)] mx-auto w-full pb-20">
+        <main style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-xl)', scrollBehavior: 'smooth' }}>
+          <div style={{ maxWidth: 'var(--content-max-width)', margin: '0 auto', width: '100%', paddingBottom: '80px' }}>
             {children}
           </div>
         </main>
