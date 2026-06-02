@@ -21,9 +21,10 @@ function GoogleCallbackContent() {
   useEffect(() => {
     const code = searchParams.get('code');
     const error = searchParams.get('error');
+    const errorDescription = searchParams.get('error_description');
 
     if (error) {
-      toast({ type: 'error', message: 'Google authentication failed' });
+      toast({ type: 'error', message: errorDescription || error || 'Google authentication failed' });
       router.push('/login');
       return;
     }
@@ -43,7 +44,7 @@ function GoogleCallbackContent() {
         if (res.success && res.data) {
           toast({ type: 'success', message: 'Successfully logged in with Google!' });
           login(res.data.token, res.data.user);
-          router.push('/');
+          router.push('/dashboard');
         }
       } catch (err: any) {
         toast({ type: 'error', message: err.message || 'Google authentication failed' });

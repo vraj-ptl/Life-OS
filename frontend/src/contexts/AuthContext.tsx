@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import api from '@/lib/api';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { isPublicAuthPath } from '@/lib/authPaths';
 
 export interface User {
   _id: string;
@@ -34,11 +35,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const pathname = usePathname();
+
+  const handleLogout = () => {
+    localStorage.removeItem('life-os-token');
+    localStorage.removeItem('life-os-user');
+    setUser(null);
+    router.push('/login');
+  };
 
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem('life-os-token');
       const savedUser = localStorage.getItem('life-os-user');
+      const currentPath = pathname || '';
+      const onPublicAuthPath = isPublicAuthPath(currentPath);
 
       if (token) {
         if (savedUser) {
@@ -49,6 +60,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
+        if (currentPath.startsWith('/google/callback')) {
+          setIsLoading(false);
+          return;
+        }
+
         // Verify token & get latest user data
         try {
           const res = await api.get<{ user: User }>('/auth/me');
@@ -56,30 +72,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(res.data.user);
             localStorage.setItem('life-os-user', JSON.stringify(res.data.user));
           } else {
-            handleLogout();
+            if (onPublicAuthPath) {
+              localStorage.removeItem('life-os-token');
+              localStorage.removeItem('life-os-user');
+              setUser(null);
+            } else {
+              handleLogout();
+            }
           }
         } catch (error) {
           console.error('Auth verification failed', error);
-          handleLogout();
+          if (onPublicAuthPath) {
+            localStorage.removeItem('life-os-token');
+            localStorage.removeItem('life-os-user');
+            setUser(null);
+          } else {
+            handleLogout();
+          }
         }
       }
       setIsLoading(false);
     };
 
     initAuth();
-  }, []);
+  }, [pathname, router]);
 
   const login = (token: string, userData: User) => {
     localStorage.setItem('life-os-token', token);
     localStorage.setItem('life-os-user', JSON.stringify(userData));
     setUser(userData);
-  };
-
-  const handleLogout = () => {
-    localStorage.removeItem('life-os-token');
-    localStorage.removeItem('life-os-user');
-    setUser(null);
-    router.push('/login');
   };
 
   const updateUser = (updatedFields: Partial<User>) => {

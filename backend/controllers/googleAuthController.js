@@ -6,8 +6,16 @@ const generateToken = (userId) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRE || '7d' });
 };
 
+const getMissingGoogleConfig = () => {
+  const required = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'FRONTEND_URL'];
+  return required.filter((key) => !process.env[key]);
+};
+
 // We will use the frontend callback page as the redirect URI
-const getRedirectUri = () => `${process.env.FRONTEND_URL}/google/callback`;
+const getRedirectUri = () => {
+  const frontendUrl = (process.env.FRONTEND_URL || '').replace(/\/+$/, '');
+  return `${frontendUrl}/google/callback`;
+};
 
 const getOAuth2Client = () => {
   return new google.auth.OAuth2(
@@ -19,16 +27,23 @@ const getOAuth2Client = () => {
 
 exports.getGoogleAuthUrl = (req, res) => {
   try {
+    const missingConfig = getMissingGoogleConfig();
+    if (missingConfig.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing Google OAuth config: ${missingConfig.join(', ')}`,
+      });
+    }
+
     const oauth2Client = getOAuth2Client();
     
     // Generate an authentication URL
     const url = oauth2Client.generateAuthUrl({
       access_type: 'offline', // Required to get a refresh token
       scope: [
-        'https://www.googleapis.com/auth/userinfo.profile',
-        'https://www.googleapis.com/auth/userinfo.email',
-        'https://mail.google.com/',
-        'https://www.googleapis.com/auth/calendar'
+        'openid',
+        'email',
+        'profile'
       ],
       prompt: 'consent' // Force to get refresh token
     });
@@ -42,6 +57,14 @@ exports.getGoogleAuthUrl = (req, res) => {
 
 exports.googleAuthCallback = async (req, res) => {
   try {
+    const missingConfig = getMissingGoogleConfig();
+    if (missingConfig.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing Google OAuth config: ${missingConfig.join(', ')}`,
+      });
+    }
+
     const { code } = req.body;
     
     if (!code) {
@@ -84,10 +107,10 @@ exports.googleAuthCallback = async (req, res) => {
       }
     }
 
-    // Save tokens and connection status
-    user.gmailConnected = true;
+    // Save sign-in tokens and reset third-party connection status.
+    user.gmailConnected = false;
     user.gmailTokens = tokens;
-    user.calendarConnected = true;
+    user.calendarConnected = false;
     user.calendarTokens = tokens;
 
     await user.save();
@@ -106,6 +129,26 @@ exports.googleAuthCallback = async (req, res) => {
 
   } catch (error) {
     console.error('Google Auth Callback Error:', error);
+    const googleErrorCode =
+      error?.response?.data?.error ||
+      error?.response?.data?.error_description ||
+      error?.message ||
+      '';
+
+    if (typeof googleErrorCode === 'string' && googleErrorCode.includes('invalid_grant')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google authorization code expired. Please try signing in again.',
+      });
+    }
+
+    if (typeof googleErrorCode === 'string' && googleErrorCode.includes('redirect_uri_mismatch')) {
+      return res.status(400).json({
+        success: false,
+        message: 'Google redirect URI mismatch. Check FRONTEND_URL and Google Console settings.',
+      });
+    }
+
     res.status(500).json({ success: false, message: 'Failed to authenticate with Google' });
   }
 };

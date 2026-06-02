@@ -103,12 +103,14 @@ export default function RegisterPage() {
 
   const handleGoogleLogin = async () => {
     try {
+      localStorage.removeItem('life-os-token');
+      localStorage.removeItem('life-os-user');
       const res = await api.get<{ url: string }>('/auth/google/url');
       if (res.success && res.data?.url) {
         window.location.href = res.data.url;
       }
     } catch (err: any) {
-      toast({ type: 'error', message: 'Failed to connect to Google' });
+      toast({ type: 'error', message: err.message || 'Failed to connect to Google' });
     }
   };
 

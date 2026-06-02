@@ -1,4 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+import { isPublicAuthPath } from './authPaths';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 interface ApiResponse<T = unknown> {
   success: boolean;
@@ -36,8 +38,10 @@ class ApiClient {
         ...options,
         headers,
       });
-
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const rawBody = await response.text();
+      const isJson = contentType.includes('application/json');
+      const data = isJson && rawBody ? JSON.parse(rawBody) : {};
 
       if (!response.ok) {
         // Handle 401 — redirect to login
@@ -45,17 +49,19 @@ class ApiClient {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('life-os-token');
             localStorage.removeItem('life-os-user');
-            // Only redirect if not already on auth pages
-            if (!window.location.pathname.startsWith('/login') && 
-                !window.location.pathname.startsWith('/register')) {
+            // Only redirect if not already on public auth pages
+            if (!isPublicAuthPath(window.location.pathname)) {
               window.location.href = '/login';
             }
           }
         }
-        
+
+        const fallbackMessage =
+          response.statusText || `Request failed with status ${response.status}`;
         throw {
           status: response.status,
-          ...data,
+          message: data?.message || fallbackMessage,
+          ...data
         };
       }
 
@@ -64,6 +70,26 @@ class ApiClient {
       if (error && typeof error === 'object' && 'status' in error) {
         throw error;
       }
+
+      if (error instanceof SyntaxError) {
+        throw {
+          success: false,
+          message: 'Invalid server response. Please try again.',
+          status: 0,
+        };
+      }
+
+      if (
+        error instanceof TypeError ||
+        (error instanceof Error && /failed to fetch|networkerror/i.test(error.message))
+      ) {
+        throw {
+          success: false,
+          message: 'Cannot reach the API. Please check backend connection.',
+          status: 0,
+        };
+      }
+
       throw {
         success: false,
         message: 'Network error. Please check your connection.',

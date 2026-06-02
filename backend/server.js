@@ -8,13 +8,25 @@ const { apiLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
+const configuredOrigins = (process.env.ALLOWED_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const fallbackOrigin = process.env.FRONTEND_URL || 'http://localhost:3000';
+const allowedOrigins = configuredOrigins.length > 0 ? configuredOrigins : [fallbackOrigin];
+
 // Connect to MongoDB
 connectDB();
 
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization'],
@@ -100,9 +112,23 @@ app.use((err, req, res, next) => {
 // Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
+  const requiredConfig = ['MONGO_URI', 'JWT_SECRET', 'FRONTEND_URL'];
+  const missingRequired = requiredConfig.filter((key) => !process.env[key]);
+  const googleConfig = ['GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET'];
+  const missingGoogle = googleConfig.filter((key) => !process.env[key]);
+
   console.log(`\n⚡ Life OS Backend running on port ${PORT}`);
   console.log(`📡 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 Frontend URL: ${process.env.FRONTEND_URL}\n`);
+  console.log(`✅ Allowed origins: ${allowedOrigins.join(', ')}`);
+
+  if (missingRequired.length > 0) {
+    console.warn(`⚠️  Missing required env vars: ${missingRequired.join(', ')}`);
+  }
+
+  if (missingGoogle.length > 0) {
+    console.warn(`⚠️  Missing Google OAuth env vars: ${missingGoogle.join(', ')}`);
+  }
 });
 
 module.exports = app;
