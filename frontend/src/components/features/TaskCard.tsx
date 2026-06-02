@@ -85,18 +85,18 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
 
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted">
               {task.deadline && (
-                <div className={`flex items-center gap-1 ${task.status === 'overdue' ? 'text-danger' : ''}`}>
-                  <Calendar size={14} />
+                <div className={`flex items-center justify-center gap-1.5 ${task.status === 'overdue' ? 'text-danger' : ''}`}>
+                  <Calendar size={14} className="mt-[-1px]" />
                   <span>{formatRelativeDate(task.deadline)}</span>
                 </div>
               )}
               
-              <div className="flex items-center gap-1">
-                <Clock size={14} />
+              <div className="flex items-center justify-center gap-1.5">
+                <Clock size={14} className="mt-[-1px]" />
                 <span>{task.estimatedDuration}m</span>
               </div>
               
-              <div className="flex items-center gap-1" title={`Energy: ${task.energyRequired}`}>
+              <div className="flex items-center justify-center gap-1.5" title={`Energy: ${task.energyRequired}`}>
                 <Zap size={14} className={
                   task.energyRequired === 'high' ? 'text-warning' : 
                   task.energyRequired === 'medium' ? 'text-info' : 'text-success'

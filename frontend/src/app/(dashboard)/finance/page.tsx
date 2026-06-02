@@ -165,7 +165,7 @@ export default function FinancePage() {
                   {data.transactions.map((tx: Transaction) => (
                     <div key={tx._id} className="flex items-center justify-between p-3 rounded-lg hover:bg-white/5 transition-colors group">
                       <div className="flex items-center gap-4">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
+                        <div className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${tx.type === 'income' ? 'bg-success/20 text-success' : 'bg-danger/20 text-danger'}`}>
                           {tx.type === 'income' ? <ArrowUpRight size={20} /> : <ArrowDownRight size={20} />}
                         </div>
                         <div>
@@ -230,12 +230,12 @@ export default function FinancePage() {
           {/* Transaction Type Toggle */}
           <div>
             <label className="block text-sm font-semibold text-primary mb-3">Transaction Type</label>
-            <div className="flex gap-3 bg-card border border-border-default rounded-lg p-2">
+            <div className="flex gap-2 bg-input border border-border-default rounded-lg p-1.5">
               <button
                 type="button"
-                className={`flex-1 py-3 px-4 rounded-md font-semibold text-sm transition-all ${
+                className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm transition-all ${
                   txType === 'expense' 
-                    ? 'bg-danger text-white shadow-lg shadow-danger/20' 
+                    ? 'bg-danger text-white shadow-md' 
                     : 'text-secondary hover:text-primary hover:bg-white/5'
                 }`}
                 onClick={() => { setTxType('expense'); setFormData({...formData, category: EXPENSE_CATEGORIES[0]})}}
@@ -245,9 +245,9 @@ export default function FinancePage() {
               </button>
               <button
                 type="button"
-                className={`flex-1 py-3 px-4 rounded-md font-semibold text-sm transition-all ${
+                className={`flex-1 py-2 px-4 rounded-md font-semibold text-sm transition-all ${
                   txType === 'income' 
-                    ? 'bg-success text-white shadow-lg shadow-success/20' 
+                    ? 'bg-success text-white shadow-md' 
                     : 'text-secondary hover:text-primary hover:bg-white/5'
                 }`}
                 onClick={() => { setTxType('income'); setFormData({...formData, category: INCOME_CATEGORIES[0]})}}
@@ -275,7 +275,7 @@ export default function FinancePage() {
           <div>
             <label className="block text-sm font-semibold text-primary mb-2">Category</label>
             <select
-              className="w-full"
+              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
               value={formData.category}
               onChange={(e) => setFormData({ ...formData, category: e.target.value })}
               required

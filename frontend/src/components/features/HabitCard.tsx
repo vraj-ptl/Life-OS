@@ -58,8 +58,8 @@ export const HabitCard = ({ habit, isCompletedToday, onToggle, date }: HabitCard
         {/* Info */}
         <div className="flex flex-col">
           <h4 className="font-semibold text-primary text-base">{habit.name}</h4>
-          <div className="flex items-center gap-1.5 text-xs font-medium text-secondary">
-            <Flame size={14} className={habit.currentStreak > 0 ? "text-warning" : "text-muted"} />
+          <div className="flex items-center justify-start gap-1.5 text-xs font-medium text-secondary">
+            <Flame size={14} className={`mt-[-1px] ${habit.currentStreak > 0 ? "text-warning" : "text-muted"}`} />
             <span className={habit.currentStreak > 0 ? "text-warning-light" : ""}>
               {habit.currentStreak} day streak
             </span>

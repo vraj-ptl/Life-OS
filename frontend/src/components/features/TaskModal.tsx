@@ -98,7 +98,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
             <FileText size={16} /> Description (Optional)
           </label>
           <textarea
-            className="w-full min-h-[100px] rounded-lg p-3 font-base resize-none"
+            className="w-full min-h-[100px] bg-input border-[1.5px] border-border-default rounded-md p-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all resize-none"
             placeholder="Add details, links, or notes..."
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -113,7 +113,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               <Flag size={16} /> Priority
             </label>
             <select
-              className="w-full"
+              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
             >
@@ -133,7 +133,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               type="number"
               min="5"
               step="5"
-              className="w-full h-12 bg-input border border-border-default rounded-lg px-3 text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
               value={formData.estimatedDuration}
               onChange={(e) => setFormData({ ...formData, estimatedDuration: parseInt(e.target.value) || 30 })}
             />
@@ -147,7 +147,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
           </label>
           <input
             type="datetime-local"
-            className="w-full h-12 bg-input border border-border-default rounded-lg px-3 text-primary focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all"
+            className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
             value={formData.deadline}
             onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
           />
@@ -158,7 +158,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
           <label className="block text-sm font-semibold text-primary mb-3 flex items-center gap-2">
             <Zap size={16} /> Energy Level Required
           </label>
-          <div className="grid grid-cols-3 gap-2 bg-card border border-border-default rounded-lg overflow-hidden">
+          <div className="flex gap-2 bg-input border border-border-default rounded-lg p-1.5">
             {[
               { level: 'low', label: 'Low 🟢', color: 'bg-success' },
               { level: 'medium', label: 'Medium 🔵', color: 'bg-info' },
@@ -167,9 +167,9 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               <button
                 key={level}
                 type="button"
-                className={`py-3 px-3 font-semibold text-sm text-center transition-all ${
+                className={`flex-1 py-2 px-3 rounded-md font-semibold text-sm text-center transition-all ${
                   formData.energyRequired === level
-                    ? `${color} text-white shadow-lg`
+                    ? `${color} text-white shadow-md`
                     : 'text-secondary hover:bg-white/5'
                 }`}
                 onClick={() => setFormData({ ...formData, energyRequired: level as any })}

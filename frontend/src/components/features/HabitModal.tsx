@@ -76,7 +76,7 @@ export const HabitModal = ({ isOpen, onClose, onSave, isLoading = false }: Habit
         {/* Icon Selection */}
         <div>
           <label className="block text-sm font-semibold text-primary mb-3">Choose an Icon</label>
-          <div className="grid grid-cols-6 gap-2 p-3 bg-card border border-border-default rounded-lg">
+          <div className="grid grid-cols-6 gap-2 p-3 bg-input border border-border-default rounded-lg">
             {ICONS.map(icon => (
               <button
                 key={icon}
@@ -97,7 +97,7 @@ export const HabitModal = ({ isOpen, onClose, onSave, isLoading = false }: Habit
         {/* Color Selection */}
         <div>
           <label className="block text-sm font-semibold text-primary mb-3">Choose a Color</label>
-          <div className="flex gap-3 p-3 bg-card border border-border-default rounded-lg">
+          <div className="flex gap-3 p-3 bg-input border border-border-default rounded-lg">
             {COLORS.map(color => (
               <button
                 key={color}
@@ -118,7 +118,7 @@ export const HabitModal = ({ isOpen, onClose, onSave, isLoading = false }: Habit
         <div>
           <label className="block text-sm font-semibold text-primary mb-2">Category</label>
           <select
-            className="w-full"
+            className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
             value={formData.category}
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
             required
@@ -134,15 +134,15 @@ export const HabitModal = ({ isOpen, onClose, onSave, isLoading = false }: Habit
         {/* Frequency Selection */}
         <div>
           <label className="block text-sm font-semibold text-primary mb-2">Frequency</label>
-          <div className="flex bg-card border border-border-default rounded-lg overflow-hidden">
+          <div className="flex gap-2 bg-input border border-border-default rounded-lg p-1.5">
             {['daily', 'weekly'].map((freq) => (
               <button
                 key={freq}
                 type="button"
-                className={`flex-1 py-3 font-semibold text-sm capitalize transition-all ${
+                className={`flex-1 py-2 font-semibold text-sm capitalize rounded-md transition-all ${
                   formData.frequency === freq
-                    ? 'bg-primary text-white'
-                    : 'bg-white/5 text-secondary hover:bg-white/10'
+                    ? 'bg-primary text-white shadow-md'
+                    : 'text-secondary hover:bg-white/5'
                 }`}
                 onClick={() => setFormData({ ...formData, frequency: freq })}
               >
