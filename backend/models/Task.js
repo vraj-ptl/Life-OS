@@ -57,6 +57,11 @@ const taskSchema = new mongoose.Schema({
     reason: String,
     confidence: Number,
   },
+  parentTaskId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Task',
+    default: null,
+  },
   completedAt: {
     type: Date,
   },

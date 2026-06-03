@@ -5,6 +5,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOf
 import { getPriorityColor } from '@/lib/utils';
 import { TaskCard } from '@/components/features/TaskCard';
 import { TaskModal } from '@/components/features/TaskModal';
+import { TaskDetailModal } from '@/components/features/TaskDetailModal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
 import { Plus, List, Layout, Calendar as CalendarIcon, Loader2, CheckSquare } from 'lucide-react';
@@ -19,6 +20,7 @@ export default function TasksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  const [detailTask, setDetailTask] = useState<any | null>(null);
   
   const currentDate = new Date();
   const monthStart = startOfMonth(currentDate);
@@ -69,6 +71,7 @@ export default function TasksPage() {
 
       if (updates.length > 0) {
         setTasks(newTasks);
+        let needsRefetch = false;
         updates.forEach(async (update) => {
           try {
             await api.put(`/tasks/${update.id}`, { status: update.newStatus });
@@ -76,11 +79,16 @@ export default function TasksPage() {
               toast({ type: 'info', message: 'Task Auto-Started!', description: `"${update.title}" is now in progress.` });
             } else if (update.newStatus === 'overdue') {
               toast({ type: 'error', message: 'Task Overdue!', description: `"${update.title}" missed its deadline.` });
+              needsRefetch = true;
             }
           } catch (e) {
             console.error('Failed auto status change', e);
           }
         });
+        // Re-fetch after a short delay so recurring overdue clones appear
+        if (needsRefetch) {
+          setTimeout(() => fetchTasks(), 1000);
+        }
       }
     };
 
@@ -113,8 +121,6 @@ export default function TasksPage() {
   };
 
   const handleDeleteTask = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) return;
-    
     try {
       await api.delete(`/tasks/${id}`);
       setTasks(tasks.filter(t => t._id !== id));
@@ -125,6 +131,9 @@ export default function TasksPage() {
   };
 
   const handleStatusChange = async (id: string, newStatus: string) => {
+    const task = tasks.find(t => t._id === id);
+    const prevStatus = task?.status;
+    
     // Optimistic update
     setTasks(tasks.map(t => t._id === id ? { ...t, status: newStatus } : t));
     
@@ -132,6 +141,12 @@ export default function TasksPage() {
       await api.put(`/tasks/${id}`, { status: newStatus });
       if (newStatus === 'done') {
         toast({ type: 'success', message: 'Task completed! +XP' });
+        // Re-fetch so any newly created recurring task appears
+        setTimeout(() => fetchTasks(), 500);
+      } else if (prevStatus === 'done' && newStatus !== 'done') {
+        toast({ type: 'info', message: 'Task reopened', description: 'Recurring clone removed.' });
+        // Re-fetch so the deleted recurring clone disappears
+        setTimeout(() => fetchTasks(), 500);
       }
     } catch (error: any) {
       // Revert on error
@@ -147,11 +162,34 @@ export default function TasksPage() {
     const newSubtasks = [...task.subtasks];
     newSubtasks[subtaskIndex] = { ...newSubtasks[subtaskIndex], isCompleted: !newSubtasks[subtaskIndex].isCompleted };
     
+    const allDone = newSubtasks.every(st => st.isCompleted);
+    const wasAllDone = task.subtasks.every((st: any) => st.isCompleted);
+    
+    // Determine new status
+    let newStatus = task.status;
+    if (allDone && task.status !== 'done') {
+      newStatus = 'done';
+    } else if (!allDone && task.status === 'done') {
+      newStatus = 'in-progress';
+    }
+    
     // Optimistic update
-    setTasks(tasks.map(t => t._id === id ? { ...t, subtasks: newSubtasks } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, subtasks: newSubtasks, status: newStatus } : t));
     
     try {
-      await api.put(`/tasks/${id}`, { subtasks: newSubtasks });
+      const updatePayload: any = { subtasks: newSubtasks };
+      if (newStatus !== task.status) {
+        updatePayload.status = newStatus;
+      }
+      await api.put(`/tasks/${id}`, updatePayload);
+      
+      if (allDone && !wasAllDone) {
+        toast({ type: 'success', message: 'All subtasks done!', description: 'Task marked as completed automatically.' });
+        setTimeout(() => fetchTasks(), 500);
+      } else if (!allDone && wasAllDone) {
+        toast({ type: 'info', message: 'Task reopened', description: 'Moved back to In Progress.' });
+        setTimeout(() => fetchTasks(), 500);
+      }
     } catch (error: any) {
       fetchTasks();
       toast({ type: 'error', message: 'Failed to update subtask' });
@@ -240,7 +278,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.overdue.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                     ))}
                   </div>
                 </section>
@@ -253,7 +291,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.inProgress.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                     ))}
                   </div>
                 </section>
@@ -266,7 +304,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.todo.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                     ))}
                   </div>
                 </section>
@@ -279,7 +317,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.done.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                     ))}
                   </div>
                 </section>
@@ -298,7 +336,7 @@ export default function TasksPage() {
                 </div>
                 <div className={styles.kanbanList}>
                   {groupedTasks.todo.map(task => (
-                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                   ))}
                 </div>
               </div>
@@ -311,7 +349,7 @@ export default function TasksPage() {
                 </div>
                 <div className={styles.kanbanList}>
                   {groupedTasks.inProgress.map(task => (
-                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                   ))}
                 </div>
               </div>
@@ -324,7 +362,7 @@ export default function TasksPage() {
                 </div>
                 <div className={styles.kanbanList}>
                   {groupedTasks.done.map(task => (
-                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
+                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} onView={(t) => setDetailTask(t)} />
                   ))}
                 </div>
               </div>
@@ -354,7 +392,7 @@ export default function TasksPage() {
                             key={task._id} 
                             className={styles.calendarTaskItem} 
                             style={{ borderLeftColor: getPriorityColor(task.priority) }} 
-                            onClick={() => { setEditingTask(task); setIsModalOpen(true); }}
+                            onClick={() => setDetailTask(task)}
                             title={task.title}
                           >
                             {task.title}
@@ -375,6 +413,13 @@ export default function TasksPage() {
         onClose={() => setIsModalOpen(false)} 
         onSave={handleSaveTask} 
         task={editingTask}
+      />
+
+      <TaskDetailModal
+        isOpen={!!detailTask}
+        onClose={() => setDetailTask(null)}
+        task={detailTask}
+        onEdit={(t) => { setDetailTask(null); setEditingTask(t); setIsModalOpen(true); }}
       />
     </div>
   );

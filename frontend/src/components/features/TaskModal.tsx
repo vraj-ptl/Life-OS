@@ -3,6 +3,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Zap, Clock, Flag, Calendar, FileText, Tag, ListTodo, Repeat, X, Plus } from 'lucide-react';
+import inputStyles from '@/components/ui/Input.module.css';
 
 interface Subtask {
   title: string;
@@ -151,7 +152,8 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
             <FileText size={16} /> Description (Optional)
           </label>
           <textarea
-            className="w-full min-h-[80px] bg-input border-[1.5px] border-border-default rounded-md p-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all resize-none"
+            className={`${inputStyles.input} min-h-[80px] resize-none py-2`}
+            style={{ height: 'auto' }}
             placeholder="Add details, links, or notes..."
             value={formData.description}
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -166,7 +168,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               <Flag size={16} /> Priority
             </label>
             <select
-              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
+              className={inputStyles.input}
               value={formData.priority}
               onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
             >
@@ -184,7 +186,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
             </label>
             <input
               type="datetime-local"
-              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
+              className={inputStyles.input}
               value={formData.startTime}
               onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
             />
@@ -197,7 +199,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
             </label>
             <input
               type="datetime-local"
-              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
+              className={inputStyles.input}
               value={formData.deadline}
               onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
             />
@@ -209,7 +211,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               <Zap size={16} /> Energy Level
             </label>
             <select
-              className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
+              className={inputStyles.input}
               value={formData.energyRequired}
               onChange={(e) => setFormData({ ...formData, energyRequired: e.target.value as any })}
             >
@@ -245,7 +247,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
                 value={subtaskInput}
                 onChange={(e) => setSubtaskInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddSubtask(); } }}
-                className="flex-1 h-[40px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-sm text-primary focus:border-primary outline-none transition-all"
+                className={inputStyles.input}
               />
               <Button type="button" variant="secondary" onClick={handleAddSubtask} className="h-[40px] px-3">
                 <Plus size={16} />
@@ -296,7 +298,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
           
           {formData.recurring?.isRecurring && (
             <select
-              className="flex-1 h-[36px] bg-background border-[1.5px] border-border-default rounded-md px-3 text-sm text-primary outline-none"
+              className={`${inputStyles.input} !h-9 !w-auto flex-1 text-sm`}
               value={formData.recurring.frequency}
               onChange={(e) => setFormData({
                 ...formData,

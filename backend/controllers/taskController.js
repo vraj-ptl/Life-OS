@@ -95,24 +95,99 @@ exports.updateTask = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
+    const prevStatus = task.status;
+    const newStatus = req.body.status;
+
     // Check if status is changing to 'done'
-    const isCompleting = req.body.status === 'done' && task.status !== 'done';
+    const isCompleting = newStatus === 'done' && prevStatus !== 'done';
     if (isCompleting) {
       req.body.completedAt = new Date();
-      
-      // Calculate XP based on priority
-      const xpReward = req.body.priority === 'urgent' ? 50 : 
-                       req.body.priority === 'high' ? 30 :
-                       req.body.priority === 'medium' ? 20 : 10;
-                       
-      // Log activity for AI engine
-      // ActivityLog.create({ userId: req.userId, action: 'task_completed', metadata: { taskId: task._id, priority: task.priority } }).catch(console.error);
     }
+
+    // Check if status is being REVERTED from 'done' to something else
+    const isReverting = prevStatus === 'done' && newStatus && newStatus !== 'done';
+
+    // Check if task is becoming overdue
+    const isBecomingOverdue = newStatus === 'overdue' && prevStatus !== 'overdue';
 
     task = await Task.findByIdAndUpdate(req.params.id, req.body, {
       new: true,
       runValidators: true,
     });
+
+    // Helper to add interval to a date based on frequency
+    const addInterval = (date, freq) => {
+      const d = new Date(date);
+      if (freq === 'daily') d.setDate(d.getDate() + 1);
+      else if (freq === 'weekly') d.setDate(d.getDate() + 7);
+      else if (freq === 'monthly') d.setMonth(d.getMonth() + 1);
+      return d;
+    };
+
+    // --- Clone recurring task on completion ---
+    if (isCompleting && task.recurring && task.recurring.isRecurring) {
+      try {
+        const freq = task.recurring.frequency;
+        const cloneData = {
+          userId: task.userId,
+          title: task.title,
+          description: task.description,
+          priority: task.priority,
+          status: 'todo',
+          energyRequired: task.energyRequired,
+          tags: task.tags || [],
+          subtasks: (task.subtasks || []).map(st => ({ title: st.title, isCompleted: false })),
+          recurring: { isRecurring: true, frequency: freq },
+          parentTaskId: task._id,
+        };
+
+        if (task.startTime) cloneData.startTime = addInterval(task.startTime, freq);
+        if (task.deadline) cloneData.deadline = addInterval(task.deadline, freq);
+
+        await Task.create(cloneData);
+      } catch (recurErr) {
+        console.error('Recurring task clone error:', recurErr);
+      }
+    }
+
+    // --- Delete child clone when reverting from done ---
+    if (isReverting && task.recurring && task.recurring.isRecurring) {
+      try {
+        await Task.deleteMany({ parentTaskId: task._id, userId: task.userId });
+      } catch (delErr) {
+        console.error('Failed to delete recurring clone on revert:', delErr);
+      }
+    }
+
+    // --- Clone recurring task on overdue ---
+    if (isBecomingOverdue && task.recurring && task.recurring.isRecurring) {
+      try {
+        const freq = task.recurring.frequency;
+        // Check if a clone already exists for this parent
+        const existingClone = await Task.findOne({ parentTaskId: task._id, userId: task.userId });
+        if (!existingClone) {
+          const cloneData = {
+            userId: task.userId,
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            status: 'todo',
+            energyRequired: task.energyRequired,
+            tags: task.tags || [],
+            subtasks: (task.subtasks || []).map(st => ({ title: st.title, isCompleted: false })),
+            recurring: { isRecurring: true, frequency: freq },
+            parentTaskId: task._id,
+          };
+
+          if (task.startTime) cloneData.startTime = addInterval(task.startTime, freq);
+          if (task.deadline) cloneData.deadline = addInterval(task.deadline, freq);
+
+          await Task.create(cloneData);
+        }
+      } catch (recurErr) {
+        console.error('Recurring task clone on overdue error:', recurErr);
+      }
+    }
 
     res.json({
       success: true,
