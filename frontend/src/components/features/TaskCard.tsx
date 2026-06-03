@@ -108,20 +108,23 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onSubtaskTogg
   return (
     <div ref={cardRef} className="relative group animate-fade-in-up">
       <Card 
-        padding="md" 
+        padding="0" 
         hover 
-        className={`border-l-4 overflow-visible cursor-pointer ${isDone ? 'opacity-60' : ''}`}
-        style={{ borderLeftColor: priorityColor }}
+        className={`border-l-4 overflow-visible cursor-pointer rounded-[28px] ${isDone ? 'opacity-70' : 'shadow-[0_25px_80px_-35px_rgba(59,130,246,0.65)]'}`}
+        style={{
+          borderLeftColor: priorityColor,
+          background: 'radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 28%), radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.10), transparent 30%), rgba(15, 23, 42, 0.96)'
+        }}
         onClick={() => onView && onView(task)}
       >
-        <div className="flex items-start justify-between gap-md">
+        <div className="flex items-start justify-between gap-0 p-5">
           {/* Status Toggle - only show for tasks WITHOUT subtasks */}
           {!hasSubtasks && (
             <button 
               disabled={task.status === 'todo'}
               onClick={(e) => { e.stopPropagation(); toggleStatus(); }}
               title={task.status === 'todo' ? "Task must be in progress to complete" : "Toggle completion"}
-              className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+              className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
                 task.status === 'todo' ? 'border-muted/50 cursor-not-allowed opacity-50' :
                 isDone ? 'bg-success border-success text-white' : 'border-muted hover:border-primary text-transparent hover:text-primary-light'
               }`}
@@ -131,66 +134,80 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onSubtaskTogg
           )}
 
           {/* Content */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 pl-4">
+            {/* Status & Priority Badges */}
+            <div className="flex flex-wrap items-center gap-2.5 mb-4">
+              <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold uppercase tracking-wider ${
+                task.status === 'done' ? 'bg-success/20 text-success border-success/35' :
+                task.status === 'in-progress' ? 'bg-info/20 text-info border-info/35' :
+                task.status === 'todo' ? 'bg-primary/20 text-primary-light border-primary/35' :
+                'bg-danger/20 text-danger border-danger/35'
+              }`}>
+                {task.status === 'done' ? '✅ Completed' : task.status === 'in-progress' ? '⚡ In Progress' : task.status === 'todo' ? '📋 To Do' : '⏰ Overdue'}
+              </span>
+              <span className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold uppercase tracking-wider border-white/20 bg-white/8" style={{ color: priorityColor }}>
+                <span className="h-3 w-3 rounded-full" style={{ background: priorityColor }}></span>
+                {task.priority} Priority
+              </span>
+            </div>
+
+            {/* Title */}
             <h4 
-              className={`text-base font-semibold mb-1 truncate transition-all ${isDone ? 'line-through text-muted' : 'text-primary'}`}
+              className={`text-lg font-bold mb-2 leading-tight ${isDone ? 'line-through text-white/50' : 'text-white'}`}
             >
               {task.title}
             </h4>
             
+            {/* Description */}
             {task.description && (
-              <p className="text-sm text-secondary line-clamp-2 mb-3">
+              <p className="text-sm text-white/60 line-clamp-2 mb-4">
                 {task.description}
               </p>
             )}
 
-            <div className="flex flex-wrap items-center gap-2 mt-3 mb-1">
+            {/* Info Badges Row */}
+            <div className="flex flex-wrap items-center gap-2.5 mb-5">
               {task.deadline && (
-                <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border ${
+                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide border ${
                   task.status === 'overdue' 
-                    ? 'bg-danger/10 text-danger border-danger/20' 
-                    : 'bg-warning/10 text-warning border-warning/20'
+                    ? 'bg-danger/15 text-danger border-danger/30' 
+                    : 'bg-warning/15 text-warning border-warning/30'
                 }`}>
-                  <Calendar size={12} />
+                  <Calendar size={14} />
                   <span>{formatRelativeDate(task.deadline)}</span>
                 </div>
               )}
 
-              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border ${
-                task.energyRequired === 'high' ? 'bg-[#a855f7]/10 text-[#a855f7] border-[#a855f7]/20' : 
-                task.energyRequired === 'medium' ? 'bg-info/10 text-info border-info/20' : 
-                'bg-success/10 text-success border-success/20'
+              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide border ${
+                task.energyRequired === 'high' ? 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' : 
+                task.energyRequired === 'medium' ? 'bg-info/15 text-info border-info/30' : 
+                'bg-success/15 text-success border-success/30'
               }`}>
-                <Zap size={12} />
-                <span className="capitalize">{task.energyRequired} Energy</span>
+                <Zap size={14} />
+                <span>{task.energyRequired} Energy</span>
               </div>
               
               {task.subtasks && task.subtasks.length > 0 && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold bg-primary/10 text-primary border border-primary/20">
-                  <ListTodo size={12} />
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide bg-primary/15 text-primary-light border border-primary/30">
+                  <ListTodo size={14} />
                   <span>{task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}</span>
                 </div>
               )}
               
               {task.recurring?.isRecurring && (
-                <div className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold bg-info/10 text-info border border-info/20">
-                  <Repeat size={12} />
-                  <span className="capitalize">{task.recurring.frequency}</span>
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide bg-info/15 text-info border border-info/30">
+                  <Repeat size={14} />
+                  <span>{task.recurring.frequency}</span>
                 </div>
               )}
             </div>
             
             {/* Tags */}
             {task.tags && task.tags.length > 0 && (
-              <div style={{ marginTop: 'var(--space-sm)', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+              <div className="flex flex-wrap gap-2 mb-5">
                 {task.tags.map((tag, i) => (
-                  <span key={i} style={{ 
-                    display: 'inline-flex', alignItems: 'center', gap: '4px', 
-                    padding: '2px 6px', borderRadius: '4px', fontSize: '10px', 
-                    fontWeight: 'var(--font-medium)', background: 'rgba(14, 165, 233, 0.1)', 
-                    color: 'var(--color-primary-light)' 
-                  }}>
-                    <Tag size={10} />
+                  <span key={i} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-primary/15 text-primary-light border border-primary/30">
+                    <Tag size={12} />
                     {tag}
                   </span>
                 ))}
@@ -199,49 +216,52 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onSubtaskTogg
 
             {/* AI Suggestion Badge */}
             {task.suggestedTime && !isDone && (
-              <div className="mt-3 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary-glow/20 border border-primary/30 text-xs text-primary-light">
-                <Zap size={12} className="text-primary" fill="currentColor" />
+              <div className="mb-5 flex items-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/35 text-xs text-primary-light font-semibold">
+                <Zap size={14} className="text-primary" fill="currentColor" />
                 <span>AI Suggests: {new Date(task.suggestedTime.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>
             )}
 
             {/* Progress Bar */}
             {!isDone && task.startTime && task.deadline && (
-              <div className="mt-4">
-                <div className="flex justify-between items-center text-xs text-muted mb-1 font-medium">
-                  <span className="flex items-center gap-2">
-                    Time Progress
-                    {timeLeft && <span className="text-info font-semibold">{timeLeft}</span>}
-                  </span>
-                  <span>{progress.toFixed(2)}%</span>
-                </div>
-                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border-default/50">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${progress >= 100 ? 'bg-danger' : 'bg-primary'}`} 
-                    style={{ width: `${progress}%` }}
-                  />
+              <div className="mb-5 rounded-3xl border border-white/15 bg-white/8 p-4">
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold uppercase tracking-widest text-white/70">Time Progress</span>
+                    <span className="text-sm font-bold text-info">{progress.toFixed(0)}%</span>
+                  </div>
+                  {timeLeft && (
+                    <span className="text-xs text-info/90 font-semibold">{timeLeft}</span>
+                  )}
+                  <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden border border-white/15">
+                    <div 
+                      className="h-full transition-all duration-1000 bg-gradient-to-r from-info via-primary to-success"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Interactive Subtasks List */}
             {task.subtasks && task.subtasks.length > 0 && (
-              <div className="mt-4 space-y-2">
+              <div className="mb-4 space-y-3">
+                <p className="text-xs font-bold uppercase tracking-widest text-white/60 mb-3">Subtasks</p>
                 {task.subtasks.map((st, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-black/5 p-2 rounded-md border border-border-default/30 transition-colors hover:bg-black/10">
-                    <span className={`text-sm ${st.isCompleted ? 'line-through text-muted' : 'text-primary'}`}>
+                  <div key={idx} className="flex items-center justify-between bg-white/8 p-3 rounded-lg border border-white/12 transition-colors hover:bg-white/12">
+                    <span className={`text-sm font-medium ${st.isCompleted ? 'line-through text-white/40' : 'text-white/90'}`}>
                       {st.title}
                     </span>
                     <button 
                       disabled={task.status === 'todo'}
-                      className={`p-1.5 rounded-md transition-all ${
-                        task.status === 'todo' ? 'text-muted/50 cursor-not-allowed opacity-50' :
+                      className={`p-2 rounded-lg transition-all ${
+                        task.status === 'todo' ? 'text-white/30 cursor-not-allowed opacity-50' :
                         st.isCompleted ? 'text-warning hover:bg-warning/20' : 'text-success hover:bg-success/20'
                       }`}
                       onClick={(e) => { e.stopPropagation(); onSubtaskToggle && onSubtaskToggle(task._id, idx); }}
                       title={task.status === 'todo' ? 'Task must be in progress to complete subtasks' : st.isCompleted ? 'Undo Subtask' : 'Complete Subtask'}
                     >
-                      {st.isCompleted ? <Repeat size={14} /> : <CheckCircle2 size={14} />}
+                      {st.isCompleted ? <Repeat size={16} /> : <CheckCircle2 size={16} />}
                     </button>
                   </div>
                 ))}
@@ -250,12 +270,13 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onSubtaskTogg
           </div>
 
           {/* Context Menu */}
-          <div className="relative">
+          <div className="relative pl-2">
             <button 
-              className="p-1 text-muted hover:text-primary rounded-md hover:bg-white/5 transition-colors"
+              className="p-2.5 text-white/50 hover:text-primary hover:bg-primary/15 rounded-lg transition-colors font-semibold"
               onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
+              title="More options"
             >
-              <MoreVertical size={18} />
+              <MoreVertical size={20} />
             </button>
             
             {showMenu && (
@@ -264,35 +285,35 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onSubtaskTogg
                   className="fixed inset-0 z-40" 
                   onClick={() => setShowMenu(false)} 
                 />
-                <div className="absolute right-0 top-full mt-2 w-48 bg-card border border-border-default rounded-xl shadow-2xl z-50 p-2 flex flex-col gap-1.5 animate-fade-in-scale transform-origin-top-right">
+                <div className="absolute right-0 top-full mt-3 w-52 bg-slate-900/95 border border-white/15 rounded-xl shadow-2xl z-50 p-2 flex flex-col gap-2 animate-fade-in-scale transform-origin-top-right backdrop-blur-sm">
 
                   {task.status !== 'todo' && task.status !== 'done' && (
                     <button 
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-lg bg-warning/10 text-warning hover:bg-warning hover:text-white transition-all border border-warning/20"
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-warning/20 text-warning hover:bg-warning/40 transition-all border border-warning/30"
                       onClick={(e) => { e.stopPropagation(); setShowMenu(false); onStatusChange(task._id, 'todo'); }}
                     >
-                      <ListTodo size={14} /> Move to To Do
+                      <ListTodo size={16} /> Move to To Do
                     </button>
                   )}
                   {task.status !== 'done' && !hasSubtasks && (
                     <button 
-                      className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-lg bg-success/10 text-success hover:bg-success hover:text-white transition-all border border-success/20"
+                      className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-success/20 text-success hover:bg-success/40 transition-all border border-success/30"
                       onClick={(e) => { e.stopPropagation(); setShowMenu(false); onStatusChange(task._id, 'done'); }}
                     >
-                      <CheckCircle2 size={14} /> Mark as Done
+                      <CheckCircle2 size={16} /> Mark as Done
                     </button>
                   )}
                   <button 
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-lg bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all border border-primary/20"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-primary/20 text-primary-light hover:bg-primary/40 transition-all border border-primary/30"
                     onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(task); }}
                   >
-                    <Edit2 size={14} /> Edit Task
+                    <Edit2 size={16} /> Edit Task
                   </button>
                   <button 
-                    className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium rounded-lg bg-danger/10 text-danger hover:bg-danger hover:text-white transition-all border border-danger/20"
+                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-danger/20 text-danger hover:bg-danger/40 transition-all border border-danger/30"
                     onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDelete(task._id); }}
                   >
-                    <Trash2 size={14} /> Delete Task
+                    <Trash2 size={16} /> Delete Task
                   </button>
                 </div>
               </>
