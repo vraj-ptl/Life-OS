@@ -1,7 +1,7 @@
 import { Clock, Calendar, Zap, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, Tag, ListTodo, Repeat } from 'lucide-react';
 import { Card } from '@/components/ui/Card';
 import { getPriorityColor, getStatusColor, formatRelativeDate } from '@/lib/utils';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { gsap } from '@/lib/gsapConfig';
 import { useGSAP } from '@gsap/react';
 
@@ -18,7 +18,7 @@ interface Task {
   status: 'todo' | 'in-progress' | 'done' | 'overdue';
   deadline?: string;
   energyRequired: 'low' | 'medium' | 'high';
-  estimatedDuration: number;
+  startTime?: string;
   suggestedTime?: {
     startTime: string;
     endTime: string;
@@ -42,6 +42,29 @@ interface TaskCardProps {
 export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    if (!task.startTime || !task.deadline || task.status === 'done') return;
+    
+    const calculateProgress = () => {
+      const start = new Date(task.startTime!).getTime();
+      const end = new Date(task.deadline!).getTime();
+      const now = Date.now();
+      
+      if (now <= start) {
+        setProgress(0);
+      } else if (now >= end) {
+        setProgress(100);
+      } else {
+        setProgress(((now - start) / (end - start)) * 100);
+      }
+    };
+    
+    calculateProgress();
+    const interval = setInterval(calculateProgress, 30000);
+    return () => clearInterval(interval);
+  }, [task.startTime, task.deadline, task.status]);
 
   const priorityColor = getPriorityColor(task.priority);
   const statusColor = getStatusColor(task.status);
@@ -102,10 +125,7 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
                 </div>
               )}
               
-              <div className="flex items-center justify-center gap-1.5">
-                <Clock size={14} className="mt-[-1px]" />
-                <span>{task.estimatedDuration}m</span>
-              </div>
+
               
               <div className="flex items-center justify-center gap-1.5" title={`Energy: ${task.energyRequired}`}>
                 <Zap size={14} className={
@@ -115,9 +135,9 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
               </div>
               
               {task.subtasks && task.subtasks.length > 0 && (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }} title="Subtask Progress">
                   <ListTodo size={14} style={{ marginTop: '-1px' }} />
-                  <span>{task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}</span>
+                  <span>{task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length} ({Math.round((task.subtasks.filter(st => st.isCompleted).length / task.subtasks.length) * 100)}%)</span>
                 </div>
               )}
               
@@ -152,6 +172,22 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
                 <span>AI Suggests: {new Date(task.suggestedTime.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
               </div>
             )}
+
+            {/* Progress Bar */}
+            {!isDone && task.startTime && task.deadline && (
+              <div className="mt-4">
+                <div className="flex justify-between text-xs text-muted mb-1 font-medium">
+                  <span>Time Progress</span>
+                  <span>{Math.round(progress)}%</span>
+                </div>
+                <div className="h-1.5 w-full bg-background rounded-full overflow-hidden border border-border-default/50">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${progress >= 100 ? 'bg-danger' : 'bg-primary'}`} 
+                    style={{ width: `${progress}%` }}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Context Menu */}
@@ -170,14 +206,38 @@ export const TaskCard = ({ task, onEdit, onDelete, onStatusChange }: TaskCardPro
                   onClick={() => setShowMenu(false)} 
                 />
                 <div className="absolute right-0 top-full mt-1 w-36 bg-card border border-border-default rounded-md shadow-xl z-50 overflow-hidden py-1 animate-fade-in-scale transform-origin-top-right">
+                  {task.status !== 'in-progress' && task.status !== 'done' && (
+                    <button 
+                      className="w-full text-left px-3 py-2 text-sm text-info hover:text-info-light hover:bg-info/10 flex items-center gap-2 transition-colors"
+                      onClick={() => { setShowMenu(false); onStatusChange(task._id, 'in-progress'); }}
+                    >
+                      <Zap size={14} /> Start Task
+                    </button>
+                  )}
+                  {task.status !== 'todo' && task.status !== 'done' && (
+                    <button 
+                      className="w-full text-left px-3 py-2 text-sm text-warning hover:text-warning-light hover:bg-warning/10 flex items-center gap-2 transition-colors"
+                      onClick={() => { setShowMenu(false); onStatusChange(task._id, 'todo'); }}
+                    >
+                      <ListTodo size={14} /> Move to To Do
+                    </button>
+                  )}
+                  {task.status !== 'done' && (
+                    <button 
+                      className="w-full text-left px-3 py-2 text-sm text-success hover:text-success-light hover:bg-success/10 flex items-center gap-2 transition-colors"
+                      onClick={() => { setShowMenu(false); onStatusChange(task._id, 'done'); }}
+                    >
+                      <CheckCircle2 size={14} /> Mark as Done
+                    </button>
+                  )}
                   <button 
-                    className="w-full text-left px-3 py-2 text-sm text-secondary hover:text-primary hover:bg-white/5 flex items-center gap-2 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-primary hover:text-primary-light hover:bg-primary/10 flex items-center gap-2 transition-colors"
                     onClick={() => { setShowMenu(false); onEdit(task); }}
                   >
                     <Edit2 size={14} /> Edit
                   </button>
                   <button 
-                    className="w-full text-left px-3 py-2 text-sm text-danger-light hover:text-danger hover:bg-danger/10 flex items-center gap-2 transition-colors"
+                    className="w-full text-left px-3 py-2 text-sm text-danger hover:text-danger-light hover:bg-danger/10 flex items-center gap-2 transition-colors"
                     onClick={() => { setShowMenu(false); onDelete(task._id); }}
                   >
                     <Trash2 size={14} /> Delete

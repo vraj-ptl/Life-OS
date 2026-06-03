@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const auth = require('../middleware/auth');
-const { taskValidation, mongoIdValidation } = require('../utils/validators');
+const { taskValidation, taskUpdateValidation, mongoIdValidation } = require('../utils/validators');
 const {
   getTasks,
   createTask,
@@ -19,7 +19,7 @@ router.route('/')
 router.get('/stats', getTaskStats);
 
 router.route('/:id')
-  .put(mongoIdValidation, taskValidation, updateTask)
+  .put(mongoIdValidation, taskUpdateValidation, updateTask)
   .delete(mongoIdValidation, deleteTask);
 
 module.exports = router;

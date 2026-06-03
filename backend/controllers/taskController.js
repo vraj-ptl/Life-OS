@@ -58,7 +58,7 @@ exports.createTask = async (req, res) => {
       tomorrow.setHours(10, 0, 0, 0);
       
       const endTime = new Date(tomorrow);
-      endTime.setMinutes(endTime.getMinutes() + (taskData.estimatedDuration || 30));
+      endTime.setMinutes(endTime.getMinutes() + 30);
 
       taskData.suggestedTime = {
         startTime: tomorrow,

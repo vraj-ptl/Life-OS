@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, startOfWeek, endOfWeek, isToday, isSameMonth } from 'date-fns';
+import { getPriorityColor } from '@/lib/utils';
 import { TaskCard } from '@/components/features/TaskCard';
 import { TaskModal } from '@/components/features/TaskModal';
 import { Button } from '@/components/ui/Button';
@@ -17,6 +19,13 @@ export default function TasksPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
+  
+  const currentDate = new Date();
+  const monthStart = startOfMonth(currentDate);
+  const monthEnd = endOfMonth(monthStart);
+  const startDate = startOfWeek(monthStart);
+  const endDate = endOfWeek(monthEnd);
+  const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
   
   const { toast } = useToast();
 
@@ -37,6 +46,47 @@ export default function TasksPage() {
   useEffect(() => {
     fetchTasks();
   }, []);
+
+  // Real-time status transitions
+  useEffect(() => {
+    if (tasks.length === 0) return;
+
+    const checkStatuses = () => {
+      const now = Date.now();
+      const updates: {id: string, newStatus: string, title: string}[] = [];
+      
+      const newTasks = tasks.map(task => {
+        if (task.status === 'todo' && task.startTime && now >= new Date(task.startTime).getTime()) {
+          updates.push({ id: task._id, newStatus: 'in-progress', title: task.title });
+          return { ...task, status: 'in-progress' };
+        }
+        if (task.status !== 'done' && task.status !== 'overdue' && task.deadline && now >= new Date(task.deadline).getTime()) {
+          updates.push({ id: task._id, newStatus: 'overdue', title: task.title });
+          return { ...task, status: 'overdue' };
+        }
+        return task;
+      });
+
+      if (updates.length > 0) {
+        setTasks(newTasks);
+        updates.forEach(async (update) => {
+          try {
+            await api.put(`/tasks/${update.id}`, { status: update.newStatus });
+            if (update.newStatus === 'in-progress') {
+              toast({ type: 'info', message: 'Task Auto-Started!', description: `"${update.title}" is now in progress.` });
+            } else if (update.newStatus === 'overdue') {
+              toast({ type: 'error', message: 'Task Overdue!', description: `"${update.title}" missed its deadline.` });
+            }
+          } catch (e) {
+            console.error('Failed auto status change', e);
+          }
+        });
+      }
+    };
+
+    const interval = setInterval(checkStatuses, 10000); // Check every 10 seconds for real-time feel
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   const handleSaveTask = async (taskData: any) => {
     try {
@@ -178,6 +228,19 @@ export default function TasksPage() {
                 </section>
               )}
 
+              {groupedTasks.inProgress.length > 0 && (
+                <section>
+                  <h3 className={styles.sectionTitle} style={{ color: 'var(--color-info)' }}>
+                    <span className={styles.statusDot} style={{ background: 'var(--color-info)' }}></span> In Progress
+                  </h3>
+                  <div className={styles.tasksGrid}>
+                    {groupedTasks.inProgress.map(task => (
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                    ))}
+                  </div>
+                </section>
+              )}
+
               {groupedTasks.todo.length > 0 && (
                 <section>
                   <h3 className={styles.sectionTitle} style={{ color: 'var(--color-primary-light)' }}>
@@ -252,11 +315,38 @@ export default function TasksPage() {
 
           {/* CALENDAR VIEW */}
           {viewMode === 'calendar' && (
-            <div className={styles.emptyState}>
-              <CalendarIcon size={48} className="text-muted" style={{ marginBottom: 'var(--space-md)' }} />
-              <h3 className={styles.emptyTitle}>Calendar View</h3>
-              <p className={styles.emptySubtitle}>A full calendar view is planned for Phase 4 integration.</p>
-              <Button variant="outline" onClick={() => setViewMode('list')}>Back to List</Button>
+            <div className={styles.calendarContainer}>
+              <div className={styles.calendarHeader}>
+                <h2 className="text-xl font-bold mb-4" style={{ color: 'var(--text-primary)' }}>{format(currentDate, 'MMMM yyyy')}</h2>
+                <div className={styles.calendarGridHeader}>
+                  {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                    <div key={day} className={styles.calendarDayName}>{day}</div>
+                  ))}
+                </div>
+              </div>
+              <div className={styles.calendarGrid}>
+                {calendarDays.map((day, idx) => {
+                  const dayTasks = tasks.filter(t => t.deadline && isSameDay(new Date(t.deadline), day));
+                  return (
+                    <div key={idx} className={`${styles.calendarCell} ${!isSameMonth(day, monthStart) ? styles.calendarCellOutside : ''} ${isToday(day) ? styles.calendarCellToday : ''}`}>
+                      <div className={styles.calendarDayNumber}>{format(day, 'd')}</div>
+                      <div className={styles.calendarDayTasks}>
+                        {dayTasks.map(task => (
+                          <div 
+                            key={task._id} 
+                            className={styles.calendarTaskItem} 
+                            style={{ borderLeftColor: getPriorityColor(task.priority) }} 
+                            onClick={() => { setEditingTask(task); setIsModalOpen(true); }}
+                            title={task.title}
+                          >
+                            {task.title}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </>

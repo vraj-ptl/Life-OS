@@ -84,12 +84,35 @@ const taskValidation = [
   body('status')
     .optional()
     .isIn(['todo', 'in-progress', 'done', 'overdue']).withMessage('Invalid status'),
+  body('startTime')
+    .optional()
+    .isISO8601().withMessage('Invalid start time date'),
   body('deadline')
     .optional()
     .isISO8601().withMessage('Invalid deadline date'),
-  body('estimatedDuration')
+  body('energyRequired')
     .optional()
-    .isNumeric().withMessage('Duration must be a number (minutes)'),
+    .isIn(['low', 'medium', 'high']).withMessage('Invalid energy level'),
+];
+
+const taskUpdateValidation = [
+  body('title')
+    .optional()
+    .trim()
+    .notEmpty().withMessage('Title cannot be empty')
+    .isLength({ max: 200 }).withMessage('Title cannot exceed 200 characters'),
+  body('priority')
+    .optional()
+    .isIn(['low', 'medium', 'high', 'urgent']).withMessage('Invalid priority'),
+  body('status')
+    .optional()
+    .isIn(['todo', 'in-progress', 'done', 'overdue']).withMessage('Invalid status'),
+  body('startTime')
+    .optional()
+    .isISO8601().withMessage('Invalid start time date'),
+  body('deadline')
+    .optional()
+    .isISO8601().withMessage('Invalid deadline date'),
   body('energyRequired')
     .optional()
     .isIn(['low', 'medium', 'high']).withMessage('Invalid energy level'),
@@ -154,6 +177,7 @@ module.exports = {
   verifyOtpValidation,
   resetPasswordValidation,
   taskValidation,
+  taskUpdateValidation,
   habitValidation,
   expenseValidation,
   budgetValidation,

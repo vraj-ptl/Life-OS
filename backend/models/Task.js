@@ -27,12 +27,11 @@ const taskSchema = new mongoose.Schema({
     enum: ['todo', 'in-progress', 'done', 'overdue'],
     default: 'todo',
   },
-  deadline: {
+  startTime: {
     type: Date,
   },
-  estimatedDuration: {
-    type: Number, // in minutes
-    default: 30,
+  deadline: {
+    type: Date,
   },
   energyRequired: {
     type: String,

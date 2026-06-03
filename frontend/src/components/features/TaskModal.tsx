@@ -17,7 +17,7 @@ interface Task {
   status: 'todo' | 'in-progress' | 'done' | 'overdue';
   deadline: string;
   energyRequired: 'low' | 'medium' | 'high';
-  estimatedDuration: number;
+  startTime: string;
   tags: string[];
   subtasks: Subtask[];
   recurring: {
@@ -42,7 +42,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
     status: 'todo',
     deadline: '',
     energyRequired: 'medium',
-    estimatedDuration: 30,
+    startTime: '',
     tags: [],
     subtasks: [],
     recurring: { isRecurring: false, frequency: 'daily' },
@@ -57,7 +57,8 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
       setFormData({
         ...defaultTask,
         ...task,
-        deadline: task.deadline ? new Date(task.deadline).toISOString().slice(0, 16) : '',
+        startTime: task.startTime ? new Date(new Date(task.startTime).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
+        deadline: task.deadline ? new Date(new Date(task.deadline).getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16) : '',
       });
     } else {
       setFormData(defaultTask);
@@ -70,7 +71,18 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
       alert('Please enter a task title');
       return;
     }
-    onSave(formData);
+    const dataToSave = { ...formData };
+    if (dataToSave.startTime) {
+      dataToSave.startTime = new Date(dataToSave.startTime).toISOString();
+    } else {
+      delete dataToSave.startTime;
+    }
+    if (dataToSave.deadline) {
+      dataToSave.deadline = new Date(dataToSave.deadline).toISOString();
+    } else {
+      delete dataToSave.deadline;
+    }
+    onSave(dataToSave);
   };
 
   const handleAddTag = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -165,18 +177,16 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
             </select>
           </div>
 
-          {/* Duration */}
+          {/* Start Time */}
           <div>
             <label className="block text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-              <Clock size={16} /> Duration (mins)
+              <Clock size={16} /> Start Time
             </label>
             <input
-              type="number"
-              min="5"
-              step="5"
+              type="datetime-local"
               className="w-full h-[44px] bg-input border-[1.5px] border-border-default rounded-md px-3 text-primary text-base focus:border-primary focus:ring-[3px] focus:ring-primary/10 outline-none transition-all"
-              value={formData.estimatedDuration}
-              onChange={(e) => setFormData({ ...formData, estimatedDuration: parseInt(e.target.value) || 30 })}
+              value={formData.startTime}
+              onChange={(e) => setFormData({ ...formData, startTime: e.target.value })}
             />
           </div>
           
