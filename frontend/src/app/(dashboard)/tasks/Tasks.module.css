@@ -103,10 +103,18 @@
 /* List View */
 .sectionTitle {
   font-weight: var(--font-semibold);
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+}
+
+.taskSection {
+  padding: var(--space-lg);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xl);
+  background: rgba(11, 17, 32, 0.5);
+  box-shadow: var(--shadow-sm);
 }
 
 .statusDot {
@@ -118,37 +126,37 @@
 .tasksGrid {
   display: grid;
   grid-template-columns: 1fr;
-  gap: var(--space-md);
+  gap: var(--space-lg);
 }
 
 @media (min-width: 768px) {
   .tasksGrid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   }
 }
 
 @media (min-width: 1280px) {
   .tasksGrid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
   }
 }
 
 /* Kanban View */
 .kanbanBoard {
   display: flex;
-  gap: var(--space-lg);
+  gap: var(--space-xl);
   overflow-x: auto;
-  padding-bottom: var(--space-md);
+  padding-bottom: var(--space-lg);
   min-height: calc(100vh - 250px);
 }
 
 .kanbanColumn {
-  flex: 1;
-  min-width: 300px;
+  flex: 1 0 360px;
+  min-width: 360px;
   background: var(--bg-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
-  padding: var(--space-md);
+  padding: var(--space-lg);
   display: flex;
   flex-direction: column;
 }
@@ -157,7 +165,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: var(--space-md);
+  margin-bottom: var(--space-lg);
 }
 
 .kanbanTitle {
@@ -174,9 +182,9 @@
 .kanbanList {
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  gap: var(--space-lg);
   overflow-y: auto;
-  padding-right: var(--space-xs);
+  padding-right: var(--space-sm);
 }
 
 /* Calendar View */

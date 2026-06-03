@@ -272,7 +272,7 @@ export default function TasksPage() {
           {viewMode === 'list' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-xl)' }}>
               {groupedTasks.overdue.length > 0 && (
-                <section>
+                <section className={styles.taskSection}>
                   <h3 className={styles.sectionTitle} style={{ color: 'var(--color-danger)' }}>
                     <span className={styles.statusDot} style={{ background: 'var(--color-danger)' }}></span> Overdue
                   </h3>
@@ -285,7 +285,7 @@ export default function TasksPage() {
               )}
 
               {groupedTasks.inProgress.length > 0 && (
-                <section>
+                <section className={styles.taskSection}>
                   <h3 className={styles.sectionTitle} style={{ color: 'var(--color-info)' }}>
                     <span className={styles.statusDot} style={{ background: 'var(--color-info)' }}></span> In Progress
                   </h3>
@@ -298,7 +298,7 @@ export default function TasksPage() {
               )}
 
               {groupedTasks.todo.length > 0 && (
-                <section>
+                <section className={styles.taskSection}>
                   <h3 className={styles.sectionTitle} style={{ color: 'var(--color-primary-light)' }}>
                     <span className={styles.statusDot} style={{ background: 'var(--color-primary-light)' }}></span> To Do
                   </h3>
@@ -311,7 +311,7 @@ export default function TasksPage() {
               )}
 
               {groupedTasks.done.length > 0 && (
-                <section>
+                <section className={styles.taskSection}>
                   <h3 className={styles.sectionTitle} style={{ color: 'var(--color-success)' }}>
                     <span className={styles.statusDot} style={{ background: 'var(--color-success)' }}></span> Completed
                   </h3>

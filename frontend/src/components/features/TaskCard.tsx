@@ -1,9 +1,24 @@
-import { Clock, Calendar, Zap, AlertCircle, CheckCircle2, MoreVertical, Edit2, Trash2, Tag, ListTodo, Repeat, Info } from 'lucide-react';
+import {
+  AlertTriangle,
+  Calendar,
+  CheckCircle2,
+  Clock3,
+  Edit2,
+  ListTodo,
+  MoreVertical,
+  Repeat,
+  Sparkles,
+  Tag,
+  Trash2,
+  Zap,
+} from 'lucide-react';
 import { Card } from '@/components/ui/Card';
-import { getPriorityColor, getStatusColor, formatRelativeDate } from '@/lib/utils';
-import { useState, useRef, useEffect } from 'react';
+import { formatRelativeDate, getPriorityColor, getStatusColor } from '@/lib/utils';
+import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { gsap } from '@/lib/gsapConfig';
 import { useGSAP } from '@gsap/react';
+import styles from './TaskCard.module.css';
 
 interface Subtask {
   title: string;
@@ -41,284 +56,524 @@ interface TaskCardProps {
   onView?: (task: Task) => void;
 }
 
-export const TaskCard = ({ task, onEdit, onDelete, onStatusChange, onSubtaskToggle, onView }: TaskCardProps) => {
+const statusMeta = {
+  todo: {
+    label: 'To do',
+    Icon: ListTodo,
+    className: styles.statusTodo,
+  },
+  'in-progress': {
+    label: 'In progress',
+    Icon: Zap,
+    className: styles.statusInProgress,
+  },
+  done: {
+    label: 'Completed',
+    Icon: CheckCircle2,
+    className: styles.statusDone,
+  },
+  overdue: {
+    label: 'Overdue',
+    Icon: AlertTriangle,
+    className: styles.statusOverdue,
+  },
+} satisfies Record<Task['status'], { label: string; Icon: typeof ListTodo; className: string }>;
+
+const priorityLabels: Record<Task['priority'], string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+  urgent: 'Urgent',
+};
+
+const energyLabels: Record<Task['energyRequired'], string> = {
+  low: 'Low energy',
+  medium: 'Medium energy',
+  high: 'High energy',
+};
+
+type TaskCardStyle = CSSProperties &
+  Record<'--priority-color' | '--status-color' | '--progress', string>;
+
+export const TaskCard = ({
+  task,
+  onEdit,
+  onDelete,
+  onStatusChange,
+  onSubtaskToggle,
+  onView,
+}: TaskCardProps) => {
   const [showMenu, setShowMenu] = useState(false);
-  const cardRef = useRef<HTMLDivElement>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState('');
-
-  useEffect(() => {
-    if (!task.startTime || !task.deadline || task.status === 'done') return;
-    
-    const calculateProgress = () => {
-      const start = new Date(task.startTime!).getTime();
-      const end = new Date(task.deadline!).getTime();
-      const now = Date.now();
-      
-      if (now <= start) {
-        setProgress(0);
-        setTimeLeft('Not started yet');
-      } else if (now >= end) {
-        setProgress(100);
-        setTimeLeft('Time is up');
-      } else {
-        setProgress(((now - start) / (end - start)) * 100);
-        
-        // Calculate time left
-        const diff = end - now;
-        const hours = Math.floor(diff / (1000 * 60 * 60));
-        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        
-        const parts = [];
-        if (hours > 0) parts.push(`${hours}h`);
-        if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
-        parts.push(`${seconds}s`);
-        
-        setTimeLeft(`${parts.join(' ')} left`);
-      }
-    };
-    
-    calculateProgress();
-    const interval = setInterval(calculateProgress, 1000);
-    return () => clearInterval(interval);
-  }, [task.startTime, task.deadline, task.status]);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const statusButtonRef = useRef<HTMLButtonElement>(null);
+  const menuButtonRef = useRef<HTMLButtonElement>(null);
 
   const priorityColor = getPriorityColor(task.priority);
   const statusColor = getStatusColor(task.status);
   const isDone = task.status === 'done';
-  const hasSubtasks = task.subtasks && task.subtasks.length > 0;
+  const hasSubtasks = Boolean(task.subtasks?.length);
+  const completedSubtasks = task.subtasks?.filter((subtask) => subtask.isCompleted).length ?? 0;
+  const totalSubtasks = task.subtasks?.length ?? 0;
+  const subtaskProgress = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
+  const previewSubtasks = task.subtasks?.slice(0, 3) ?? [];
+  const hiddenSubtasks = Math.max(totalSubtasks - previewSubtasks.length, 0);
+  const status = statusMeta[task.status];
+  const StatusIcon = status.Icon;
+  const displayProgress = hasSubtasks ? subtaskProgress : Math.round(progress);
 
-  useGSAP(() => {
-    if (isDone && cardRef.current) {
-      gsap.to(cardRef.current, { opacity: 0.6, scale: 0.98, duration: 0.3 });
-    } else if (cardRef.current) {
-      gsap.to(cardRef.current, { opacity: 1, scale: 1, duration: 0.3 });
+  const cardStyle = {
+    '--priority-color': priorityColor,
+    '--status-color': statusColor,
+    '--progress': `${displayProgress}%`,
+  } as TaskCardStyle;
+
+  useEffect(() => {
+    if (!task.startTime || !task.deadline || task.status === 'done') {
+      const resetTimer = window.setTimeout(() => {
+        setProgress(0);
+        setTimeLeft('');
+      }, 0);
+
+      return () => window.clearTimeout(resetTimer);
     }
-  }, [isDone]);
+
+    const calculateProgress = () => {
+      const start = new Date(task.startTime!).getTime();
+      const end = new Date(task.deadline!).getTime();
+      const now = Date.now();
+
+      if (Number.isNaN(start) || Number.isNaN(end) || end <= start) {
+        setProgress(now >= end ? 100 : 0);
+        setTimeLeft(now >= end ? 'Time is up' : '');
+        return;
+      }
+
+      if (now <= start) {
+        setProgress(0);
+        setTimeLeft('Not started yet');
+        return;
+      }
+
+      if (now >= end) {
+        setProgress(100);
+        setTimeLeft('Time is up');
+        return;
+      }
+
+      setProgress(((now - start) / (end - start)) * 100);
+
+      const diff = end - now;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      const parts = [];
+
+      if (hours > 0) parts.push(`${hours}h`);
+      if (minutes > 0 || hours > 0) parts.push(`${minutes}m`);
+      parts.push(`${seconds}s`);
+
+      setTimeLeft(`${parts.join(' ')} left`);
+    };
+
+    calculateProgress();
+    const interval = window.setInterval(calculateProgress, 1000);
+
+    return () => window.clearInterval(interval);
+  }, [task.startTime, task.deadline, task.status]);
+
+  useEffect(() => {
+    if (!showMenu) return;
+
+    const closeMenu = () => setShowMenu(false);
+
+    window.addEventListener('resize', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+
+    return () => {
+      window.removeEventListener('resize', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+    };
+  }, [showMenu]);
+
+  useGSAP(
+    () => {
+      if (!cardRef.current) return;
+
+      gsap.fromTo(
+        cardRef.current,
+        { autoAlpha: 0, y: 18, rotateX: -3 },
+        {
+          autoAlpha: isDone ? 0.72 : 1,
+          y: 0,
+          rotateX: 0,
+          duration: 0.5,
+          ease: 'power3.out',
+          clearProps: 'y,rotateX',
+        }
+      );
+
+      gsap.fromTo(
+        cardRef.current.querySelectorAll('[data-card-reveal]'),
+        { autoAlpha: 0, y: 8 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.38,
+          stagger: 0.045,
+          delay: 0.08,
+          ease: 'power2.out',
+        }
+      );
+    },
+    { scope: cardRef, dependencies: [task._id] }
+  );
+
+  useGSAP(
+    () => {
+      if (!cardRef.current) return;
+
+      gsap.to(cardRef.current, {
+        autoAlpha: isDone ? 0.72 : 1,
+        scale: isDone ? 0.985 : 1,
+        duration: 0.28,
+        ease: 'power2.out',
+      });
+
+      if (isDone && statusButtonRef.current) {
+        gsap.fromTo(
+          statusButtonRef.current,
+          { scale: 0.82 },
+          { scale: 1, duration: 0.45, ease: 'elastic.out(1, 0.55)' }
+        );
+      }
+    },
+    { scope: cardRef, dependencies: [isDone] }
+  );
 
   const toggleStatus = () => {
     if (task.status === 'done') {
       onStatusChange(task._id, 'in-progress');
-    } else {
+      return;
+    }
+
+    if (task.status !== 'todo') {
       onStatusChange(task._id, 'done');
     }
   };
 
-  return (
-    <div ref={cardRef} className="relative group animate-fade-in-up">
-      <Card 
-        padding="0" 
-        hover 
-        className={`border-l-4 overflow-visible cursor-pointer rounded-[28px] ${isDone ? 'opacity-70' : 'shadow-[0_25px_80px_-35px_rgba(59,130,246,0.65)]'}`}
-        style={{
-          borderLeftColor: priorityColor,
-          background: 'radial-gradient(circle at top left, rgba(59, 130, 246, 0.18), transparent 28%), radial-gradient(circle at bottom right, rgba(16, 185, 129, 0.10), transparent 30%), rgba(15, 23, 42, 0.96)'
+  const shouldReduceMotion = () =>
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current || shouldReduceMotion()) return;
+
+    const bounds = cardRef.current.getBoundingClientRect();
+    const x = event.clientX - bounds.left;
+    const y = event.clientY - bounds.top;
+    const xPercent = Math.min(Math.max(x / bounds.width, 0), 1);
+    const yPercent = Math.min(Math.max(y / bounds.height, 0), 1);
+
+    gsap.to(cardRef.current, {
+      rotateX: (0.5 - yPercent) * 4,
+      rotateY: (xPercent - 0.5) * 5,
+      y: -4,
+      scale: 1.01,
+      duration: 0.35,
+      ease: 'power2.out',
+      transformPerspective: 900,
+      transformOrigin: 'center',
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (!cardRef.current || shouldReduceMotion()) return;
+
+    gsap.to(cardRef.current, {
+      rotateX: 0,
+      rotateY: 0,
+      y: 0,
+      scale: isDone ? 0.985 : 1,
+      duration: 0.45,
+      ease: 'elastic.out(1, 0.65)',
+    });
+  };
+
+  const handleCardClick = () => {
+    if (onView) {
+      onView(task);
+    }
+  };
+
+  const positionMenu = () => {
+    if (!menuButtonRef.current) return;
+
+    const buttonBounds = menuButtonRef.current.getBoundingClientRect();
+    const panelWidth = 220;
+    const panelHeight = 196;
+    const spacing = 10;
+    const viewportPadding = 12;
+    const availableBelow = window.innerHeight - buttonBounds.bottom - spacing;
+    const top =
+      availableBelow >= panelHeight
+        ? buttonBounds.bottom + spacing
+        : Math.max(viewportPadding, buttonBounds.top - panelHeight - spacing);
+    const left = Math.min(
+      Math.max(viewportPadding, buttonBounds.right - panelWidth),
+      window.innerWidth - panelWidth - viewportPadding
+    );
+
+    setMenuPosition({ top, left });
+  };
+
+  const handleMenuToggle = (event: MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+
+    if (showMenu) {
+      setShowMenu(false);
+      return;
+    }
+
+    positionMenu();
+    setShowMenu(true);
+  };
+
+  const menuPanel = showMenu && typeof document !== 'undefined' && createPortal(
+    <>
+      <button
+        type="button"
+        className={styles.menuBackdrop}
+        aria-label="Close task menu"
+        onClick={(event) => {
+          event.stopPropagation();
+          setShowMenu(false);
         }}
-        onClick={() => onView && onView(task)}
+      />
+      <div
+        className={styles.menuPanel}
+        style={{ top: menuPosition.top, left: menuPosition.left }}
+        onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-0 p-5">
-          {/* Status Toggle - only show for tasks WITHOUT subtasks */}
-          {!hasSubtasks && (
-            <button 
-              disabled={task.status === 'todo'}
-              onClick={(e) => { e.stopPropagation(); toggleStatus(); }}
-              title={task.status === 'todo' ? "Task must be in progress to complete" : "Toggle completion"}
-              className={`mt-0.5 flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                task.status === 'todo' ? 'border-muted/50 cursor-not-allowed opacity-50' :
-                isDone ? 'bg-success border-success text-white' : 'border-muted hover:border-primary text-transparent hover:text-primary-light'
-              }`}
-            >
-              <CheckCircle2 size={16} className={isDone ? 'opacity-100' : task.status === 'todo' ? 'opacity-0' : 'opacity-0 group-hover:opacity-100'} />
-            </button>
+        {task.status !== 'todo' && task.status !== 'done' && (
+          <button
+            type="button"
+            className={styles.menuAction}
+            onClick={() => {
+              setShowMenu(false);
+              onStatusChange(task._id, 'todo');
+            }}
+          >
+            <ListTodo size={16} />
+            Move to To Do
+          </button>
+        )}
+
+        {task.status !== 'done' && !hasSubtasks && (
+          <button
+            type="button"
+            className={styles.menuAction}
+            onClick={() => {
+              setShowMenu(false);
+              onStatusChange(task._id, 'done');
+            }}
+          >
+            <CheckCircle2 size={16} />
+            Mark as Done
+          </button>
+        )}
+
+        <button
+          type="button"
+          className={styles.menuAction}
+          onClick={() => {
+            setShowMenu(false);
+            onEdit(task);
+          }}
+        >
+          <Edit2 size={16} />
+          Edit Task
+        </button>
+
+        <button
+          type="button"
+          className={`${styles.menuAction} ${styles.menuActionDanger}`}
+          onClick={() => {
+            setShowMenu(false);
+            onDelete(task._id);
+          }}
+        >
+          <Trash2 size={16} />
+          Delete Task
+        </button>
+      </div>
+    </>,
+    document.body
+  );
+
+  return (
+    <div
+      ref={cardRef}
+      className={styles.wrapper}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={cardStyle}
+    >
+      <Card padding="none" hover className={styles.previewCard} onClick={handleCardClick}>
+        <div className={styles.priorityRail} aria-hidden="true" />
+
+        <div className={styles.cardInner}>
+          <div className={styles.topRow} data-card-reveal>
+            {!hasSubtasks && (
+              <button
+                ref={statusButtonRef}
+                type="button"
+                disabled={task.status === 'todo'}
+                className={`${styles.statusToggle} ${isDone ? styles.statusToggleDone : ''}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  toggleStatus();
+                }}
+                title={task.status === 'todo' ? 'Task must be in progress to complete' : 'Toggle completion'}
+                aria-label={task.status === 'done' ? 'Reopen task' : 'Mark task as done'}
+              >
+                <CheckCircle2 size={18} strokeWidth={2.4} />
+              </button>
+            )}
+
+            <div className={styles.badgeCluster}>
+              <span className={`${styles.statusBadge} ${status.className}`}>
+                <StatusIcon size={13} />
+                {status.label}
+              </span>
+              <span className={styles.priorityBadge}>
+                <span className={styles.priorityDot} />
+                {priorityLabels[task.priority]} priority
+              </span>
+            </div>
+
+            <div className={styles.menuWrap}>
+              <button
+                ref={menuButtonRef}
+                type="button"
+                className={styles.menuButton}
+                onClick={handleMenuToggle}
+                title="More options"
+                aria-label="Task options"
+                aria-expanded={showMenu}
+              >
+                <MoreVertical size={18} />
+              </button>
+              {menuPanel}
+            </div>
+          </div>
+
+          <div className={styles.titleBlock} data-card-reveal>
+            <h4 className={`${styles.title} ${isDone ? styles.titleDone : ''}`}>{task.title}</h4>
+            {task.description && <p className={styles.description}>{task.description}</p>}
+          </div>
+
+          <div className={styles.infoGrid} data-card-reveal>
+            {task.deadline && (
+              <div className={`${styles.infoChip} ${task.status === 'overdue' ? styles.infoChipDanger : ''}`}>
+                <Calendar size={14} />
+                <span>{formatRelativeDate(task.deadline)}</span>
+              </div>
+            )}
+
+            <div className={`${styles.infoChip} ${styles.infoChipEnergy}`}>
+              <Zap size={14} />
+              <span>{energyLabels[task.energyRequired]}</span>
+            </div>
+
+            {hasSubtasks && (
+              <div className={`${styles.infoChip} ${styles.infoChipSubtasks}`}>
+                <ListTodo size={14} />
+                <span>
+                  {completedSubtasks}/{totalSubtasks} done
+                </span>
+              </div>
+            )}
+
+            {task.recurring?.isRecurring && (
+              <div className={styles.infoChip}>
+                <Repeat size={14} />
+                <span>{task.recurring.frequency}</span>
+              </div>
+            )}
+          </div>
+
+          {task.suggestedTime && !isDone && (
+            <div className={styles.aiStrip} data-card-reveal>
+              <Sparkles size={15} />
+              <span>
+                AI suggests{' '}
+                {new Date(task.suggestedTime.startTime).toLocaleTimeString([], {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </span>
+            </div>
           )}
 
-          {/* Content */}
-          <div className="flex-1 min-w-0 pl-4">
-            {/* Status & Priority Badges */}
-            <div className="flex flex-wrap items-center gap-2.5 mb-4">
-              <span className={`inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold uppercase tracking-wider ${
-                task.status === 'done' ? 'bg-success/20 text-success border-success/35' :
-                task.status === 'in-progress' ? 'bg-info/20 text-info border-info/35' :
-                task.status === 'todo' ? 'bg-primary/20 text-primary-light border-primary/35' :
-                'bg-danger/20 text-danger border-danger/35'
-              }`}>
-                {task.status === 'done' ? '✅ Completed' : task.status === 'in-progress' ? '⚡ In Progress' : task.status === 'todo' ? '📋 To Do' : '⏰ Overdue'}
-              </span>
-              <span className="inline-flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-[12px] font-bold uppercase tracking-wider border-white/20 bg-white/8" style={{ color: priorityColor }}>
-                <span className="h-3 w-3 rounded-full" style={{ background: priorityColor }}></span>
-                {task.priority} Priority
-              </span>
-            </div>
-
-            {/* Title */}
-            <h4 
-              className={`text-lg font-bold mb-2 leading-tight ${isDone ? 'line-through text-white/50' : 'text-white'}`}
-            >
-              {task.title}
-            </h4>
-            
-            {/* Description */}
-            {task.description && (
-              <p className="text-sm text-white/60 line-clamp-2 mb-4">
-                {task.description}
-              </p>
-            )}
-
-            {/* Info Badges Row */}
-            <div className="flex flex-wrap items-center gap-2.5 mb-5">
-              {task.deadline && (
-                <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide border ${
-                  task.status === 'overdue' 
-                    ? 'bg-danger/15 text-danger border-danger/30' 
-                    : 'bg-warning/15 text-warning border-warning/30'
-                }`}>
-                  <Calendar size={14} />
-                  <span>{formatRelativeDate(task.deadline)}</span>
-                </div>
-              )}
-
-              <div className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide border ${
-                task.energyRequired === 'high' ? 'bg-[#a855f7]/15 text-[#a855f7] border-[#a855f7]/30' : 
-                task.energyRequired === 'medium' ? 'bg-info/15 text-info border-info/30' : 
-                'bg-success/15 text-success border-success/30'
-              }`}>
-                <Zap size={14} />
-                <span>{task.energyRequired} Energy</span>
+          {(hasSubtasks || (!isDone && task.startTime && task.deadline)) && (
+            <div className={styles.progressBlock} data-card-reveal>
+              <div className={styles.progressHeader}>
+                <span>{hasSubtasks ? 'Checklist progress' : 'Time progress'}</span>
+                <strong>{displayProgress}%</strong>
               </div>
-              
-              {task.subtasks && task.subtasks.length > 0 && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide bg-primary/15 text-primary-light border border-primary/30">
-                  <ListTodo size={14} />
-                  <span>{task.subtasks.filter(st => st.isCompleted).length}/{task.subtasks.length}</span>
+              {!hasSubtasks && timeLeft && (
+                <div className={styles.timeLeft}>
+                  <Clock3 size={13} />
+                  {timeLeft}
                 </div>
               )}
-              
-              {task.recurring?.isRecurring && (
-                <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold uppercase tracking-wide bg-info/15 text-info border border-info/30">
-                  <Repeat size={14} />
-                  <span>{task.recurring.frequency}</span>
-                </div>
-              )}
+              <div className={styles.progressTrack}>
+                <div className={styles.progressFill} />
+              </div>
             </div>
-            
-            {/* Tags */}
-            {task.tags && task.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-5">
-                {task.tags.map((tag, i) => (
-                  <span key={i} className="inline-flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold bg-primary/15 text-primary-light border border-primary/30">
-                    <Tag size={12} />
-                    {tag}
+          )}
+
+          {previewSubtasks.length > 0 && (
+            <div className={styles.subtaskPreview} data-card-reveal>
+              {previewSubtasks.map((subtask, index) => (
+                <div key={`${subtask.title}-${index}`} className={styles.subtaskItem}>
+                  <span className={`${styles.subtaskDot} ${subtask.isCompleted ? styles.subtaskDotDone : ''}`}>
+                    {subtask.isCompleted && <CheckCircle2 size={12} />}
                   </span>
-                ))}
-              </div>
-            )}
-
-            {/* AI Suggestion Badge */}
-            {task.suggestedTime && !isDone && (
-              <div className="mb-5 flex items-center gap-2 px-4 py-3 rounded-lg bg-gradient-to-r from-primary/15 to-primary/5 border border-primary/35 text-xs text-primary-light font-semibold">
-                <Zap size={14} className="text-primary" fill="currentColor" />
-                <span>AI Suggests: {new Date(task.suggestedTime.startTime).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-              </div>
-            )}
-
-            {/* Progress Bar */}
-            {!isDone && task.startTime && task.deadline && (
-              <div className="mb-5 rounded-3xl border border-white/15 bg-white/8 p-4">
-                <div className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-widest text-white/70">Time Progress</span>
-                    <span className="text-sm font-bold text-info">{progress.toFixed(0)}%</span>
-                  </div>
-                  {timeLeft && (
-                    <span className="text-xs text-info/90 font-semibold">{timeLeft}</span>
-                  )}
-                  <div className="h-3 w-full rounded-full bg-white/10 overflow-hidden border border-white/15">
-                    <div 
-                      className="h-full transition-all duration-1000 bg-gradient-to-r from-info via-primary to-success"
-                      style={{ width: `${progress}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Interactive Subtasks List */}
-            {task.subtasks && task.subtasks.length > 0 && (
-              <div className="mb-4 space-y-3">
-                <p className="text-xs font-bold uppercase tracking-widest text-white/60 mb-3">Subtasks</p>
-                {task.subtasks.map((st, idx) => (
-                  <div key={idx} className="flex items-center justify-between bg-white/8 p-3 rounded-lg border border-white/12 transition-colors hover:bg-white/12">
-                    <span className={`text-sm font-medium ${st.isCompleted ? 'line-through text-white/40' : 'text-white/90'}`}>
-                      {st.title}
-                    </span>
-                    <button 
+                  <span className={subtask.isCompleted ? styles.subtaskTextDone : ''}>{subtask.title}</span>
+                  {onSubtaskToggle && (
+                    <button
+                      type="button"
                       disabled={task.status === 'todo'}
-                      className={`p-2 rounded-lg transition-all ${
-                        task.status === 'todo' ? 'text-white/30 cursor-not-allowed opacity-50' :
-                        st.isCompleted ? 'text-warning hover:bg-warning/20' : 'text-success hover:bg-success/20'
-                      }`}
-                      onClick={(e) => { e.stopPropagation(); onSubtaskToggle && onSubtaskToggle(task._id, idx); }}
-                      title={task.status === 'todo' ? 'Task must be in progress to complete subtasks' : st.isCompleted ? 'Undo Subtask' : 'Complete Subtask'}
+                      className={styles.subtaskToggle}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onSubtaskToggle(task._id, index);
+                      }}
+                      title={task.status === 'todo' ? 'Task must be in progress to complete subtasks' : 'Toggle subtask'}
+                      aria-label={subtask.isCompleted ? 'Reopen subtask' : 'Complete subtask'}
                     >
-                      {st.isCompleted ? <Repeat size={16} /> : <CheckCircle2 size={16} />}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Context Menu */}
-          <div className="relative pl-2">
-            <button 
-              className="p-2.5 text-white/50 hover:text-primary hover:bg-primary/15 rounded-lg transition-colors font-semibold"
-              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-              title="More options"
-            >
-              <MoreVertical size={20} />
-            </button>
-            
-            {showMenu && (
-              <>
-                <div 
-                  className="fixed inset-0 z-40" 
-                  onClick={() => setShowMenu(false)} 
-                />
-                <div className="absolute right-0 top-full mt-3 w-52 bg-slate-900/95 border border-white/15 rounded-xl shadow-2xl z-50 p-2 flex flex-col gap-2 animate-fade-in-scale transform-origin-top-right backdrop-blur-sm">
-
-                  {task.status !== 'todo' && task.status !== 'done' && (
-                    <button 
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-warning/20 text-warning hover:bg-warning/40 transition-all border border-warning/30"
-                      onClick={(e) => { e.stopPropagation(); setShowMenu(false); onStatusChange(task._id, 'todo'); }}
-                    >
-                      <ListTodo size={16} /> Move to To Do
+                      {subtask.isCompleted ? <Repeat size={14} /> : <CheckCircle2 size={14} />}
                     </button>
                   )}
-                  {task.status !== 'done' && !hasSubtasks && (
-                    <button 
-                      className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-success/20 text-success hover:bg-success/40 transition-all border border-success/30"
-                      onClick={(e) => { e.stopPropagation(); setShowMenu(false); onStatusChange(task._id, 'done'); }}
-                    >
-                      <CheckCircle2 size={16} /> Mark as Done
-                    </button>
-                  )}
-                  <button 
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-primary/20 text-primary-light hover:bg-primary/40 transition-all border border-primary/30"
-                    onClick={(e) => { e.stopPropagation(); setShowMenu(false); onEdit(task); }}
-                  >
-                    <Edit2 size={16} /> Edit Task
-                  </button>
-                  <button 
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm font-semibold rounded-lg bg-danger/20 text-danger hover:bg-danger/40 transition-all border border-danger/30"
-                    onClick={(e) => { e.stopPropagation(); setShowMenu(false); onDelete(task._id); }}
-                  >
-                    <Trash2 size={16} /> Delete Task
-                  </button>
                 </div>
-              </>
-            )}
-          </div>
+              ))}
+              {hiddenSubtasks > 0 && <span className={styles.moreSubtasks}>+{hiddenSubtasks} more</span>}
+            </div>
+          )}
+
+          {task.tags && task.tags.length > 0 && (
+            <div className={styles.tagList} data-card-reveal>
+              {task.tags.slice(0, 4).map((tag) => (
+                <span key={tag} className={styles.tagChip}>
+                  <Tag size={11} />
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       </Card>
     </div>
