@@ -140,6 +140,24 @@ export default function TasksPage() {
     }
   };
 
+  const handleSubtaskToggle = async (id: string, subtaskIndex: number) => {
+    const task = tasks.find(t => t._id === id);
+    if (!task || !task.subtasks) return;
+    
+    const newSubtasks = [...task.subtasks];
+    newSubtasks[subtaskIndex] = { ...newSubtasks[subtaskIndex], isCompleted: !newSubtasks[subtaskIndex].isCompleted };
+    
+    // Optimistic update
+    setTasks(tasks.map(t => t._id === id ? { ...t, subtasks: newSubtasks } : t));
+    
+    try {
+      await api.put(`/tasks/${id}`, { subtasks: newSubtasks });
+    } catch (error: any) {
+      fetchTasks();
+      toast({ type: 'error', message: 'Failed to update subtask' });
+    }
+  };
+
   // Group tasks by status for List View
   const groupedTasks = {
     todo: tasks.filter(t => t.status === 'todo'),
@@ -222,7 +240,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.overdue.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                     ))}
                   </div>
                 </section>
@@ -235,7 +253,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.inProgress.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                     ))}
                   </div>
                 </section>
@@ -248,7 +266,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.todo.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                     ))}
                   </div>
                 </section>
@@ -261,7 +279,7 @@ export default function TasksPage() {
                   </h3>
                   <div className={styles.tasksGrid}>
                     {groupedTasks.done.map(task => (
-                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                      <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                     ))}
                   </div>
                 </section>
@@ -280,7 +298,7 @@ export default function TasksPage() {
                 </div>
                 <div className={styles.kanbanList}>
                   {groupedTasks.todo.map(task => (
-                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                   ))}
                 </div>
               </div>
@@ -293,7 +311,7 @@ export default function TasksPage() {
                 </div>
                 <div className={styles.kanbanList}>
                   {groupedTasks.inProgress.map(task => (
-                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                   ))}
                 </div>
               </div>
@@ -306,7 +324,7 @@ export default function TasksPage() {
                 </div>
                 <div className={styles.kanbanList}>
                   {groupedTasks.done.map(task => (
-                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} />
+                    <TaskCard key={task._id} task={task} onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} onDelete={handleDeleteTask} onStatusChange={handleStatusChange} onSubtaskToggle={handleSubtaskToggle} />
                   ))}
                 </div>
               </div>
