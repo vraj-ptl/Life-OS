@@ -1,5 +1,23 @@
 const mongoose = require('mongoose');
 
+const progressLogSchema = new mongoose.Schema({
+  date: {
+    type: Date, // YYYY-MM-DD string converted to Date
+    required: true,
+  },
+  progress: {
+    type: Number,
+    default: 0,
+  },
+  isCompleted: {
+    type: Boolean,
+    default: false,
+  },
+  completedAt: {
+    type: Date,
+  }
+}, { _id: false });
+
 const habitSchema = new mongoose.Schema({
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,14 +38,30 @@ const habitSchema = new mongoose.Schema({
     type: String,
     default: '#8b5cf6', // Primary color
   },
+  trackingType: {
+    type: String,
+    enum: ['boolean', 'numeric', 'timer'],
+    default: 'boolean',
+  },
+  targetValue: {
+    type: Number,
+    default: 1, // 1 for boolean, customizable for numeric/timer
+  },
+  unit: {
+    type: String,
+    default: '', // e.g. 'ml', 'pages', 'mins'
+  },
   frequency: {
     type: String,
     enum: ['daily', 'weekly', 'custom'],
     default: 'daily',
   },
-  completedDates: [{
-    type: Date, // We'll store dates as YYYY-MM-DD strings converted to start-of-day Date objects
-  }],
+  timeOfDay: {
+    type: String,
+    enum: ['morning', 'afternoon', 'evening', 'night'],
+    default: 'morning',
+  },
+  logs: [progressLogSchema], // Replaces completedDates
   currentStreak: {
     type: Number,
     default: 0,
@@ -44,6 +78,11 @@ const habitSchema = new mongoose.Schema({
   reminderTime: {
     type: String, // e.g. "09:00"
   },
+  status: {
+    type: String,
+    enum: ['active', 'archived'],
+    default: 'active',
+  }
 }, {
   timestamps: true,
 });

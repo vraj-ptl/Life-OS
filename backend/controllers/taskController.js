@@ -95,6 +95,10 @@ exports.updateTask = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Task not found' });
     }
 
+    if (task.status === 'overdue') {
+      return res.status(403).json({ success: false, message: 'Overdue tasks are locked and cannot be modified.' });
+    }
+
     const prevStatus = task.status;
     const newStatus = req.body.status;
 

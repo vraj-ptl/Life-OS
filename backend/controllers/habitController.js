@@ -13,7 +13,15 @@ const getNormalizedDate = (dateString) => {
  */
 exports.getHabits = async (req, res) => {
   try {
-    const habits = await Habit.find({ userId: req.userId }).sort({ createdAt: -1 });
+    const { status } = req.query;
+    const query = { userId: req.userId };
+    if (status) {
+      query.status = status;
+    } else {
+      query.status = 'active'; // Default to active
+    }
+
+    const habits = await Habit.find(query).sort({ createdAt: -1 });
 
     res.json({
       success: true,
@@ -50,12 +58,35 @@ exports.createHabit = async (req, res) => {
 };
 
 /**
- * @desc    Toggle habit completion for a specific date
+ * @desc    Update habit (including archive)
+ * @route   PUT /api/habits/:id
+ */
+exports.updateHabit = async (req, res) => {
+  try {
+    const habit = await Habit.findOneAndUpdate(
+      { _id: req.params.id, userId: req.userId },
+      req.body,
+      { new: true, runValidators: true }
+    );
+
+    if (!habit) {
+      return res.status(404).json({ success: false, message: 'Habit not found' });
+    }
+
+    res.json({ success: true, data: { habit } });
+  } catch (error) {
+    console.error('UpdateHabit error:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+/**
+ * @desc    Toggle or update habit progress for a specific date
  * @route   PUT /api/habits/:id/toggle
  */
 exports.toggleHabit = async (req, res) => {
   try {
-    const { date } = req.body; // Expects YYYY-MM-DD or defaults to today
+    const { date, progress } = req.body; // Expects YYYY-MM-DD
     const targetDate = getNormalizedDate(date);
     const targetTime = targetDate.getTime();
 
@@ -65,22 +96,53 @@ exports.toggleHabit = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Habit not found' });
     }
 
-    // Check if date already exists
-    const dateExists = habit.completedDates.some(d => d.getTime() === targetTime);
-    let isCompleted = false;
+    // Find if log exists for date
+    const logIndex = habit.logs.findIndex(log => new Date(log.date).getTime() === targetTime);
+    let currentLog = logIndex >= 0 ? habit.logs[logIndex] : null;
 
-    if (dateExists) {
-      // Remove it (untoggle)
-      habit.completedDates = habit.completedDates.filter(d => d.getTime() !== targetTime);
+    if (habit.trackingType === 'boolean') {
+      if (currentLog && currentLog.isCompleted) {
+        // Toggle off
+        habit.logs.splice(logIndex, 1);
+        currentLog = null;
+      } else {
+        // Toggle on
+        if (logIndex >= 0) {
+          habit.logs[logIndex].isCompleted = true;
+          habit.logs[logIndex].progress = habit.targetValue;
+          habit.logs[logIndex].completedAt = new Date();
+        } else {
+          habit.logs.push({ date: targetDate, progress: habit.targetValue, isCompleted: true, completedAt: new Date() });
+        }
+      }
     } else {
-      // Add it (toggle on)
-      habit.completedDates.push(targetDate);
-      isCompleted = true;
+      // Numeric or Timer
+      const newProgress = progress !== undefined ? progress : 0;
+      const isCompleted = newProgress >= habit.targetValue;
+
+      if (logIndex >= 0) {
+        if (newProgress <= 0) {
+          habit.logs.splice(logIndex, 1);
+          currentLog = null;
+        } else {
+          if (!habit.logs[logIndex].isCompleted && isCompleted) {
+            habit.logs[logIndex].completedAt = new Date();
+          } else if (!isCompleted) {
+            habit.logs[logIndex].completedAt = undefined;
+          }
+          habit.logs[logIndex].progress = newProgress;
+          habit.logs[logIndex].isCompleted = isCompleted;
+          currentLog = habit.logs[logIndex];
+        }
+      } else if (newProgress > 0) {
+        currentLog = { date: targetDate, progress: newProgress, isCompleted, completedAt: isCompleted ? new Date() : undefined };
+        habit.logs.push(currentLog);
+      }
     }
 
-    // Recalculate streak
-    // Sort dates descending
-    const sortedDates = [...habit.completedDates].sort((a, b) => b.getTime() - a.getTime());
+    // Recalculate streak based on completed logs
+    const completedLogs = habit.logs.filter(log => log.isCompleted);
+    const sortedDates = completedLogs.map(log => new Date(log.date)).sort((a, b) => b.getTime() - a.getTime());
     
     let currentStreak = 0;
     const today = getNormalizedDate();
@@ -111,8 +173,8 @@ exports.toggleHabit = async (req, res) => {
 
     res.json({
       success: true,
-      message: isCompleted ? 'Habit marked as completed' : 'Habit unmarked',
-      data: { habit, isCompleted },
+      message: 'Habit progress updated',
+      data: { habit, isCompleted: currentLog ? currentLog.isCompleted : false },
     });
   } catch (error) {
     console.error('ToggleHabit error:', error);

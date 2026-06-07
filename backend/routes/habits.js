@@ -5,6 +5,7 @@ const { habitValidation, mongoIdValidation } = require('../utils/validators');
 const {
   getHabits,
   createHabit,
+  updateHabit,
   toggleHabit,
   deleteHabit,
 } = require('../controllers/habitController');
@@ -15,7 +16,10 @@ router.route('/')
   .get(getHabits)
   .post(habitValidation, createHabit);
 
+router.route('/:id')
+  .put(mongoIdValidation, updateHabit)
+  .delete(mongoIdValidation, deleteHabit);
+
 router.put('/:id/toggle', mongoIdValidation, toggleHabit);
-router.delete('/:id', mongoIdValidation, deleteHabit);
 
 module.exports = router;

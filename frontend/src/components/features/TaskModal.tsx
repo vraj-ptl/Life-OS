@@ -109,6 +109,16 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
       return;
     }
 
+    if (!formData.startTime) {
+      alert('Please select a Start Time');
+      return;
+    }
+
+    if (!formData.deadline) {
+      alert('Please select a Deadline');
+      return;
+    }
+
     const dataToSave: Partial<Task> = { ...formData };
 
     if (dataToSave.startTime) {
@@ -283,7 +293,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="task-start-time">
               <Clock size={15} />
-              Start time
+              Start time <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <input
               id="task-start-time"
@@ -291,13 +301,14 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               className={styles.input}
               value={formData.startTime || ''}
               onChange={(event) => setFormData({ ...formData, startTime: event.target.value })}
+              required
             />
           </div>
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="task-deadline">
               <Calendar size={15} />
-              Deadline
+              Deadline <span style={{ color: 'var(--color-danger)' }}>*</span>
             </label>
             <input
               id="task-deadline"
@@ -305,6 +316,7 @@ export const TaskModal = ({ isOpen, onClose, onSave, task, isLoading = false }: 
               className={styles.input}
               value={formData.deadline || ''}
               onChange={(event) => setFormData({ ...formData, deadline: event.target.value })}
+              required
             />
           </div>
         </div>

@@ -43,6 +43,8 @@ interface TaskDetailModalProps {
   onClose: () => void;
   task: Task | null;
   onEdit: (task: Task) => void;
+  onStatusChange?: (id: string, status: Task['status']) => void;
+  onSubtaskToggle?: (id: string, index: number) => void;
 }
 
 const priorityLabels: Record<string, string> = {
@@ -65,13 +67,30 @@ const energyLabels: Record<string, string> = {
   high: '🟡 High Energy',
 };
 
-export const TaskDetailModal = ({ isOpen, onClose, task, onEdit }: TaskDetailModalProps) => {
+export const TaskDetailModal = ({ isOpen, onClose, task, onEdit, onStatusChange, onSubtaskToggle }: TaskDetailModalProps) => {
   const [progress, setProgress] = useState(0);
   const [timeLeft, setTimeLeft] = useState('');
 
   useEffect(() => {
-    if (!task || !task.startTime || !task.deadline || task.status === 'done') return;
-    
+    if (!task) return;
+
+    if (task.status === 'done') {
+      setProgress(100);
+      if (task.completedAt) {
+        const completedDate = new Date(task.completedAt);
+        const formattedTime = completedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        setTimeLeft(`Completed at ${formattedTime}`);
+      } else {
+        setTimeLeft('Completed');
+      }
+      return;
+    }
+
+    if (!task.startTime || !task.deadline) {
+      setProgress(0);
+      setTimeLeft('');
+      return;
+    }
     const calculateProgress = () => {
       const start = new Date(task.startTime!).getTime();
       const end = new Date(task.deadline!).getTime();
@@ -122,9 +141,29 @@ export const TaskDetailModal = ({ isOpen, onClose, task, onEdit }: TaskDetailMod
       footer={
         <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
           <Button variant="ghost" onClick={onClose}>Close</Button>
-          <Button leftIcon={<Edit2 size={16} />} onClick={() => { onClose(); onEdit(task); }}>
-            Edit Task
-          </Button>
+          <div style={{ flex: 1 }} />
+          {task.status !== 'done' && task.status !== 'overdue' && (!task.subtasks || task.subtasks.length === 0) && onStatusChange && (
+            <Button 
+              leftIcon={<CheckCircle2 size={16} />} 
+              onClick={() => { onStatusChange(task._id, 'done'); onClose(); }}
+              style={{ background: 'var(--color-success)', color: 'white', borderColor: 'var(--color-success)' }}
+            >
+              Mark as Done
+            </Button>
+          )}
+          {task.status === 'done' && onStatusChange && (
+            <Button 
+              leftIcon={<Repeat size={16} />} 
+              onClick={() => { onStatusChange(task._id, 'in-progress'); onClose(); }}
+            >
+              Reopen
+            </Button>
+          )}
+          {task.status !== 'overdue' && (
+            <Button leftIcon={<Edit2 size={16} />} onClick={() => { onClose(); onEdit(task); }}>
+              Edit Task
+            </Button>
+          )}
         </div>
       }
     >
@@ -211,19 +250,29 @@ export const TaskDetailModal = ({ isOpen, onClose, task, onEdit }: TaskDetailMod
         </div>
 
         {/* Time Progress Bar */}
-        {task.startTime && task.deadline && task.status !== 'done' && (
+        {(task.status === 'done' || (task.startTime && task.deadline)) && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 Time Progress
-                {timeLeft && <span style={{ color: 'var(--color-info)' }}>{timeLeft}</span>}
+                {task.status === 'done' ? (
+                  <span style={{ color: 'var(--color-success)' }}>
+                    {task.completedAt
+                      ? `Completed at ${new Date(task.completedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}`
+                      : 'Completed'}
+                  </span>
+                ) : (
+                  timeLeft && <span style={{ color: 'var(--color-info)' }}>{timeLeft}</span>
+                )}
               </span>
-              <span style={{ color: progress >= 100 ? 'var(--color-danger)' : 'var(--color-primary)' }}>{progress.toFixed(2)}%</span>
+              <span style={{ color: task.status === 'done' ? 'var(--color-success)' : progress >= 100 ? 'var(--color-danger)' : 'var(--color-primary)' }}>
+                {task.status === 'done' ? '100.00%' : `${progress.toFixed(2)}%`}
+              </span>
             </div>
             <div style={{ height: '8px', width: '100%', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
               <div style={{
-                height: '100%', width: `${progress}%`,
-                background: progress >= 100 ? 'var(--color-danger)' : 'linear-gradient(90deg, var(--color-primary), var(--color-info))',
+                height: '100%', width: task.status === 'done' ? '100%' : `${progress}%`,
+                background: task.status === 'done' ? 'var(--color-success)' : progress >= 100 ? 'var(--color-danger)' : 'linear-gradient(90deg, var(--color-primary), var(--color-info))',
                 borderRadius: '999px', transition: 'width 0.5s ease',
               }} />
             </div>
@@ -247,12 +296,18 @@ export const TaskDetailModal = ({ isOpen, onClose, task, onEdit }: TaskDetailMod
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               {task.subtasks.map((st, idx) => (
-                <div key={idx} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px',
-                  padding: '10px 14px', borderRadius: '8px',
-                  background: st.isCompleted ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${st.isCompleted ? 'rgba(34,197,94,0.2)' : 'var(--border-default)'}`,
-                }}>
+                <div 
+                  key={idx} 
+                  onClick={() => task.status !== 'overdue' && onSubtaskToggle && onSubtaskToggle(task._id, idx)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: '10px',
+                    padding: '10px 14px', borderRadius: '8px',
+                    background: st.isCompleted ? 'rgba(34,197,94,0.06)' : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${st.isCompleted ? 'rgba(34,197,94,0.2)' : 'var(--border-default)'}`,
+                    cursor: (onSubtaskToggle && task.status !== 'overdue') ? 'pointer' : 'default',
+                    opacity: task.status === 'overdue' ? 0.7 : 1,
+                  }}
+                >
                   <div style={{
                     width: '20px', height: '20px', borderRadius: '50%', flexShrink: 0,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -265,6 +320,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, onEdit }: TaskDetailMod
                   <span style={{
                     fontSize: '14px', color: st.isCompleted ? 'var(--text-muted)' : 'var(--text-primary)',
                     textDecoration: st.isCompleted ? 'line-through' : 'none',
+                    flex: 1
                   }}>
                     {st.title}
                   </span>

@@ -1,0 +1,242 @@
+.form {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+
+.field,
+.fullWidth {
+  min-width: 0;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fieldGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.label,
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.label svg,
+.checkboxLabel svg {
+  flex: 0 0 auto;
+  color: var(--color-primary-light);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: rgba(30, 41, 59, 0.64);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  font-weight: var(--font-medium);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.input {
+  height: 46px;
+  padding: 0 14px;
+}
+
+.textarea {
+  min-height: 96px;
+  padding: 12px 14px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.input::placeholder,
+.textarea::placeholder,
+.tagBox input::placeholder {
+  color: var(--text-muted);
+}
+
+.input:hover,
+.textarea:hover,
+.tagBox:hover {
+  border-color: rgba(14, 165, 233, 0.35);
+  background: rgba(30, 41, 59, 0.78);
+}
+
+.input:focus,
+.textarea:focus,
+.tagBox:focus-within {
+  border-color: var(--color-primary);
+  background: rgba(30, 41, 59, 0.9);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.listItem {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  min-height: 38px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.listItem span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inlineControl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.addButton {
+  min-width: 46px;
+  height: 46px;
+  padding: 0 14px;
+}
+
+.removeButton {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--text-muted);
+  transition:
+    color var(--transition-fast),
+    background var(--transition-fast);
+}
+
+.removeButton:hover,
+.removeButton:focus-visible {
+  color: var(--color-danger-light);
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.tagBox {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-height: 46px;
+  padding: 7px 9px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: rgba(30, 41, 59, 0.64);
+  transition:
+    border-color var(--transition-fast),
+    background var(--transition-fast),
+    box-shadow var(--transition-fast);
+}
+
+.tagBox input {
+  flex: 1 1 170px;
+  min-width: 120px;
+  height: 30px;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.92rem;
+  font-weight: var(--font-medium);
+}
+
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid rgba(14, 165, 233, 0.24);
+  border-radius: 8px;
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--color-primary-light);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+.tagPill button {
+  display: inline-flex;
+  color: currentColor;
+}
+
+.recurringBox {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 54px;
+  padding: 12px 14px;
+  border: 1.5px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: rgba(30, 41, 59, 0.56);
+}
+
+.checkboxLabel {
+  cursor: pointer;
+}
+
+.checkbox {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--color-primary);
+}
+
+.frequencySelect {
+  max-width: 180px;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .form {
+    gap: 16px;
+  }
+
+  .fieldGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .recurringBox {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .frequencySelect {
+    max-width: none;
+    margin-left: 0;
+  }
+}

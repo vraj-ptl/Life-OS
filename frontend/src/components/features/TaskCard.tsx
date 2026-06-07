@@ -45,6 +45,8 @@ interface Task {
     isRecurring: boolean;
     frequency: 'daily' | 'weekly' | 'monthly' | 'custom';
   };
+  completedAt?: string;
+  createdAt?: string;
 }
 
 interface TaskCardProps {
@@ -124,6 +126,24 @@ export const TaskCard = ({
   const StatusIcon = status.Icon;
   const displayProgress = hasSubtasks ? subtaskProgress : Math.round(progress);
 
+  const formatDateTimeRange = (start?: string, end?: string) => {
+    if (!start && !end) return '';
+    const formatTime = (d: string) => new Date(d).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    const formatDate = (d: string) => new Date(d).toLocaleDateString([], { month: 'short', day: 'numeric' });
+    
+    if (start && end) {
+      const isSameDay = new Date(start).toDateString() === new Date(end).toDateString();
+      if (isSameDay) {
+        return `${formatDate(start)}, ${formatTime(start)} - ${formatTime(end)}`;
+      } else {
+        return `${formatDate(start)} ${formatTime(start)} - ${formatDate(end)} ${formatTime(end)}`;
+      }
+    }
+    if (end) return `Due ${formatDate(end)} ${formatTime(end)}`;
+    if (start) return `Starts ${formatDate(start)} ${formatTime(start)}`;
+    return '';
+  };
+
   const cardStyle = {
     '--priority-color': priorityColor,
     '--status-color': statusColor,
@@ -131,7 +151,19 @@ export const TaskCard = ({
   } as TaskCardStyle;
 
   useEffect(() => {
-    if (!task.startTime || !task.deadline || task.status === 'done') {
+    if (task.status === 'done') {
+      setProgress(100);
+      if (task.completedAt) {
+        const completedDate = new Date(task.completedAt);
+        const formattedTime = completedDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+        setTimeLeft(`Completed at ${formattedTime}`);
+      } else {
+        setTimeLeft('Completed');
+      }
+      return;
+    }
+
+    if (!task.startTime || !task.deadline) {
       const resetTimer = window.setTimeout(() => {
         setProgress(0);
         setTimeLeft('');
@@ -139,6 +171,8 @@ export const TaskCard = ({
 
       return () => window.clearTimeout(resetTimer);
     }
+
+
 
     const calculateProgress = () => {
       const start = new Date(task.startTime!).getTime();
@@ -182,7 +216,7 @@ export const TaskCard = ({
     const interval = window.setInterval(calculateProgress, 1000);
 
     return () => window.clearInterval(interval);
-  }, [task.startTime, task.deadline, task.status]);
+  }, [task.startTime, task.deadline, task.status, task.completedAt]);
 
   useEffect(() => {
     if (!showMenu) return;
@@ -356,7 +390,7 @@ export const TaskCard = ({
         style={{ top: menuPosition.top, left: menuPosition.left }}
         onClick={(event) => event.stopPropagation()}
       >
-        {task.status !== 'todo' && task.status !== 'done' && (
+        {task.status !== 'todo' && task.status !== 'done' && task.status !== 'overdue' && (
           <button
             type="button"
             className={styles.menuAction}
@@ -369,8 +403,22 @@ export const TaskCard = ({
             Move to To Do
           </button>
         )}
+        
+        {task.status !== 'in-progress' && task.status !== 'done' && task.status !== 'overdue' && (
+          <button
+            type="button"
+            className={styles.menuAction}
+            onClick={() => {
+              setShowMenu(false);
+              onStatusChange(task._id, 'in-progress');
+            }}
+          >
+            <Zap size={16} />
+            Start Progress
+          </button>
+        )}
 
-        {task.status !== 'done' && !hasSubtasks && (
+        {task.status !== 'done' && !hasSubtasks && task.status !== 'overdue' && (
           <button
             type="button"
             className={styles.menuAction}
@@ -384,17 +432,19 @@ export const TaskCard = ({
           </button>
         )}
 
-        <button
-          type="button"
-          className={styles.menuAction}
-          onClick={() => {
-            setShowMenu(false);
-            onEdit(task);
-          }}
-        >
-          <Edit2 size={16} />
-          Edit Task
-        </button>
+        {task.status !== 'overdue' && (
+          <button
+            type="button"
+            className={styles.menuAction}
+            onClick={() => {
+              setShowMenu(false);
+              onEdit(task);
+            }}
+          >
+            <Edit2 size={16} />
+            Edit Task
+          </button>
+        )}
 
         <button
           type="button"
@@ -429,13 +479,13 @@ export const TaskCard = ({
               <button
                 ref={statusButtonRef}
                 type="button"
-                disabled={task.status === 'todo'}
-                className={`${styles.statusToggle} ${isDone ? styles.statusToggleDone : ''}`}
+                disabled={task.status === 'todo' || task.status === 'overdue'}
+                className={`${styles.statusToggle} ${isDone ? styles.statusToggleDone : ''} ${task.status === 'overdue' ? styles.statusToggleOverdue : ''}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   toggleStatus();
                 }}
-                title={task.status === 'todo' ? 'Task must be in progress to complete' : 'Toggle completion'}
+                title={task.status === 'overdue' ? 'Overdue tasks are locked' : task.status === 'todo' ? 'Task must be in progress to complete' : 'Toggle completion'}
                 aria-label={task.status === 'done' ? 'Reopen task' : 'Mark task as done'}
               >
                 <CheckCircle2 size={18} strokeWidth={2.4} />
@@ -475,10 +525,10 @@ export const TaskCard = ({
           </div>
 
           <div className={styles.infoGrid} data-card-reveal>
-            {task.deadline && (
+            {(task.startTime || task.deadline) && (
               <div className={`${styles.infoChip} ${task.status === 'overdue' ? styles.infoChipDanger : ''}`}>
                 <Calendar size={14} />
-                <span>{formatRelativeDate(task.deadline)}</span>
+                <span>{formatDateTimeRange(task.startTime, task.deadline)}</span>
               </div>
             )}
 
@@ -517,20 +567,54 @@ export const TaskCard = ({
             </div>
           )}
 
-          {(hasSubtasks || (!isDone && task.startTime && task.deadline)) && (
+          {/* Time Progress Block */}
+          {((task.startTime && task.deadline) || isDone) && (
             <div className={styles.progressBlock} data-card-reveal>
               <div className={styles.progressHeader}>
-                <span>{hasSubtasks ? 'Checklist progress' : 'Time progress'}</span>
-                <strong>{displayProgress}%</strong>
+                <span>Time Progress</span>
+                <strong style={{
+                  color: isDone
+                    ? 'var(--color-success-light)'
+                    : progress >= 100
+                      ? 'var(--color-danger-light)'
+                      : 'var(--text-muted)',
+                }}>
+                  {timeLeft} {!isDone && `(${progress.toFixed(2)}%)`}
+                </strong>
               </div>
-              {!hasSubtasks && timeLeft && (
-                <div className={styles.timeLeft}>
-                  <Clock3 size={13} />
-                  {timeLeft}
-                </div>
-              )}
               <div className={styles.progressTrack}>
-                <div className={styles.progressFill} />
+                <div
+                  className={styles.progressFill}
+                  style={{
+                    width: `${progress}%`,
+                    background: isDone
+                      ? 'var(--color-success)'
+                      : progress >= 100
+                        ? 'rgba(239, 68, 68, 0.5)'
+                        : undefined,
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Checklist Progress Block */}
+          {hasSubtasks && (
+            <div className={styles.progressBlock} data-card-reveal>
+              <div className={styles.progressHeader}>
+                <span>Checklist Progress</span>
+                <strong style={{ color: subtaskProgress === 100 ? 'var(--color-success-light)' : '' }}>
+                  {subtaskProgress}%
+                </strong>
+              </div>
+              <div className={styles.progressTrack}>
+                <div
+                  className={styles.progressFill}
+                  style={{
+                    width: `${subtaskProgress}%`,
+                    background: subtaskProgress === 100 ? 'var(--color-success)' : undefined,
+                  }}
+                />
               </div>
             </div>
           )}
@@ -546,13 +630,13 @@ export const TaskCard = ({
                   {onSubtaskToggle && (
                     <button
                       type="button"
-                      disabled={task.status === 'todo'}
+                      disabled={task.status === 'todo' || task.status === 'overdue'}
                       className={styles.subtaskToggle}
-                      onClick={(event) => {
-                        event.stopPropagation();
+                      onClick={(e) => {
+                        e.stopPropagation();
                         onSubtaskToggle(task._id, index);
                       }}
-                      title={task.status === 'todo' ? 'Task must be in progress to complete subtasks' : 'Toggle subtask'}
+                      title={task.status === 'overdue' ? 'Overdue tasks are locked' : task.status === 'todo' ? 'Task must be in progress to complete subtasks' : 'Toggle subtask'}
                       aria-label={subtask.isCompleted ? 'Reopen subtask' : 'Complete subtask'}
                     >
                       {subtask.isCompleted ? <Repeat size={14} /> : <CheckCircle2 size={14} />}

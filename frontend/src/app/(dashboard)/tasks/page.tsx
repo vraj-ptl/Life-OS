@@ -8,11 +8,11 @@ import { TaskModal } from '@/components/features/TaskModal';
 import { TaskDetailModal } from '@/components/features/TaskDetailModal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
-import { Plus, List, Layout, Calendar as CalendarIcon, Loader2, CheckSquare } from 'lucide-react';
+import { Plus, List, Layout, Calendar as CalendarIcon, Loader2, CheckSquare, Archive } from 'lucide-react';
 import api from '@/lib/api';
 import styles from './Tasks.module.css';
 
-type ViewMode = 'list' | 'kanban' | 'calendar';
+type ViewMode = 'list' | 'kanban' | 'calendar' | 'history';
 
 export default function TasksPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -196,13 +196,41 @@ export default function TasksPage() {
     }
   };
 
-  // Group tasks by status for List View
-  const groupedTasks = {
-    todo: tasks.filter(t => t.status === 'todo'),
-    inProgress: tasks.filter(t => t.status === 'in-progress'),
-    overdue: tasks.filter(t => t.status === 'overdue'),
-    done: tasks.filter(t => t.status === 'done'),
+  // Helper to determine if a task is historical (done/overdue and > 7 days old)
+  const isHistorical = (task: any) => {
+    if (task.status !== 'done' && task.status !== 'overdue') return false;
+    const dateToCheck = task.completedAt || task.deadline || task.createdAt;
+    if (!dateToCheck) return false;
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    return new Date(dateToCheck) < sevenDaysAgo;
   };
+
+  const activeTasks = tasks.filter(t => !isHistorical(t));
+  const historicalTasks = tasks.filter(t => isHistorical(t));
+
+  // Group tasks by status for List View (only active)
+  const groupedTasks = {
+    todo: activeTasks.filter(t => t.status === 'todo'),
+    inProgress: activeTasks.filter(t => t.status === 'in-progress'),
+    overdue: activeTasks.filter(t => t.status === 'overdue'),
+    done: activeTasks.filter(t => t.status === 'done'),
+  };
+
+  // Group historical tasks by month
+  const historyByMonth: Record<string, any[]> = {};
+  historicalTasks.forEach(task => {
+    const dateToCheck = task.completedAt || task.deadline || task.createdAt;
+    const monthKey = format(new Date(dateToCheck), 'MMMM yyyy');
+    if (!historyByMonth[monthKey]) historyByMonth[monthKey] = [];
+    historyByMonth[monthKey].push(task);
+  });
+  
+  // Sort historical months descending
+  const sortedMonths = Object.keys(historyByMonth).sort((a, b) => {
+    return new Date(b).getTime() - new Date(a).getTime();
+  });
 
   return (
     <div className={styles.container}>
@@ -236,6 +264,13 @@ export default function TasksPage() {
               title="Calendar View"
             >
               <CalendarIcon size={18} />
+            </button>
+            <button 
+              className={`${styles.toggleBtn} ${viewMode === 'history' ? styles.toggleBtnActive : ''}`}
+              onClick={() => setViewMode('history')}
+              title="History View"
+            >
+              <Archive size={18} />
             </button>
           </div>
 
@@ -382,7 +417,7 @@ export default function TasksPage() {
               </div>
               <div className={styles.calendarGrid}>
                 {calendarDays.map((day, idx) => {
-                  const dayTasks = tasks.filter(t => t.deadline && isSameDay(new Date(t.deadline), day));
+                  const dayTasks = activeTasks.filter(t => t.deadline && isSameDay(new Date(t.deadline), day));
                   return (
                     <div key={idx} className={`${styles.calendarCell} ${!isSameMonth(day, monthStart) ? styles.calendarCellOutside : ''} ${isToday(day) ? styles.calendarCellToday : ''}`}>
                       <div className={styles.calendarDayNumber}>{format(day, 'd')}</div>
@@ -405,6 +440,40 @@ export default function TasksPage() {
               </div>
             </div>
           )}
+
+          {/* HISTORY VIEW */}
+          {viewMode === 'history' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2xl)' }}>
+              {sortedMonths.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <Archive size={32} style={{ opacity: 0.5, marginBottom: '16px' }} />
+                  <h3 className={styles.emptyTitle}>No history yet</h3>
+                  <p className={styles.emptySubtitle}>Completed and overdue tasks older than 7 days will appear here.</p>
+                </div>
+              ) : (
+                sortedMonths.map(month => (
+                  <section key={month} className={styles.taskSection}>
+                    <h3 className={styles.sectionTitle} style={{ color: 'var(--text-secondary)' }}>
+                      <CalendarIcon size={16} /> {month}
+                    </h3>
+                    <div className={styles.tasksGrid}>
+                      {historyByMonth[month].map(task => (
+                        <TaskCard 
+                          key={task._id} 
+                          task={task} 
+                          onEdit={(t) => { setEditingTask(t); setIsModalOpen(true); }} 
+                          onDelete={handleDeleteTask} 
+                          onStatusChange={handleStatusChange} 
+                          onSubtaskToggle={handleSubtaskToggle} 
+                          onView={(t) => setDetailTask(t)} 
+                        />
+                      ))}
+                    </div>
+                  </section>
+                ))
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -420,6 +489,8 @@ export default function TasksPage() {
         onClose={() => setDetailTask(null)}
         task={detailTask}
         onEdit={(t) => { setDetailTask(null); setEditingTask(t); setIsModalOpen(true); }}
+        onStatusChange={handleStatusChange}
+        onSubtaskToggle={handleSubtaskToggle}
       />
     </div>
   );
