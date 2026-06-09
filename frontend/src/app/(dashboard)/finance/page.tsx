@@ -5,10 +5,9 @@ import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useToast } from '@/components/ui/Toast';
 import { formatCurrency } from '@/lib/utils';
-import { Wallet, TrendingUp, TrendingDown, Plus, Sparkles, Loader2, ArrowUpRight, ArrowDownRight, Target, Hash, Type, Calendar, History, PieChart, Repeat, PiggyBank } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Plus, Sparkles, Loader2, ArrowUpRight, ArrowDownRight, Target, Hash, Type, Calendar, History, PieChart, Repeat } from 'lucide-react';
 import api from '@/lib/api';
 import { TransactionCard, Transaction } from '@/components/features/TransactionCard';
-import { SavingsGoalCard, SavingsGoal } from '@/components/features/SavingsGoalCard';
 import { SubscriptionCard, Subscription } from '@/components/features/SubscriptionCard';
 import { BudgetCard, Budget } from '@/components/features/BudgetCard';
 import FinanceChatbot from '@/components/features/FinanceChatbot';
@@ -24,8 +23,7 @@ export default function FinancePage() {
     transactions: [], 
     expensesByCategory: {},
     budgets: [],
-    subscriptions: [],
-    savingsGoals: []
+    subscriptions: []
   });
   
   const [isLoading, setIsLoading] = useState(true);
@@ -35,7 +33,6 @@ export default function FinancePage() {
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
   const [isSubModalOpen, setIsSubModalOpen] = useState(false);
-  const [isSavingsModalOpen, setIsSavingsModalOpen] = useState(false);
   
   // Tabs
   const [leftTab, setLeftTab] = useState<'transactions'|'subscriptions'>('transactions');
@@ -59,8 +56,7 @@ export default function FinancePage() {
         setData({
           ...res.data,
           budgets: res.data.budgets || [],
-          subscriptions: res.data.subscriptions || [],
-          savingsGoals: res.data.savingsGoals || []
+          subscriptions: res.data.subscriptions || []
         });
       }
     } catch (error: any) {
@@ -131,7 +127,8 @@ export default function FinancePage() {
   };
 
   // --- Subscriptions ---
-  const [subForm, setSubForm] = useState({ name: '', amount: '', billingCycle: 'monthly', nextBillingDate: new Date().toISOString().split('T')[0], category: 'Entertainment' });
+  const todayStr = new Date().toISOString().split('T')[0];
+  const [subForm, setSubForm] = useState({ name: '', amount: '', billingCycle: 'monthly', nextBillingDate: todayStr, category: 'Entertainment' });
   const handleSaveSub = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -139,37 +136,12 @@ export default function FinancePage() {
       toast({ type: 'success', message: 'Subscription added' });
       setIsSubModalOpen(false);
       fetchFinanceData();
-    } catch(err) { toast({ type: 'error', message: 'Failed to add subscription' }); }
+    } catch(err: any) { toast({ type: 'error', message: err?.message || 'Failed to add subscription' }); }
   };
   const handleDeleteSub = async (id: string) => {
     await api.delete(`/finance/subscriptions/${id}`);
     fetchFinanceData();
   };
-
-  // --- Savings Goals ---
-  const [savingsForm, setSavingsForm] = useState({ name: '', targetAmount: '', deadline: '', color: '#10b981' });
-  const handleSaveSavings = async (e: React.FormEvent) => {
-    e.preventDefault();
-    try {
-      await api.post('/finance/savings-goals', { ...savingsForm, targetAmount: parseFloat(savingsForm.targetAmount) });
-      toast({ type: 'success', message: 'Savings goal added' });
-      setIsSavingsModalOpen(false);
-      fetchFinanceData();
-    } catch(err) { toast({ type: 'error', message: 'Failed to add goal' }); }
-  };
-  const handleDeleteSavings = async (id: string) => {
-    await api.delete(`/finance/savings-goals/${id}`);
-    fetchFinanceData();
-  };
-  const handleAddFunds = async (id: string, amount: number) => {
-    const goal = data.savingsGoals.find((g: any) => g._id === id);
-    if (!goal) return;
-    try {
-      await api.put(`/finance/savings-goals/${id}`, { currentAmount: goal.currentAmount + amount });
-      fetchFinanceData();
-    } catch(err) { toast({ type: 'error', message: 'Failed to add funds' }); }
-  };
-
 
   // Current month calculations
   const currentMonthStats = useMemo(() => {
@@ -216,29 +188,102 @@ export default function FinancePage() {
     return availableBudget / daysLeft;
   }, [currentMonthStats, data.transactions]);
 
-  // Smart Insights generator
+  // Smart Insights generator - DETAILED version
   const smartInsights = useMemo(() => {
     if (data.transactions.length === 0) {
-      return [{ type: 'info', title: 'Welcome to Finance Tracker', description: 'Add your first transaction to get smart insights on your spending habits!', suggestion: 'Start by adding your current bank balance as "Income" to calibrate your Safe to Spend.' }];
+      return [{ type: 'info', title: 'Welcome to Finance Tracker', description: 'Add your first transaction to get smart insights on your spending habits! Start by logging your income or first expense to calibrate the system.', suggestion: 'Start by adding your current bank balance as "Income" to calibrate your Safe to Spend metric. Then log each expense as you go — the AI will learn your patterns within a week.' }];
     }
+
     const insights = [];
+    const totalBalance = data.summary.income - data.summary.expense;
+    const savingsRate = data.summary.income > 0 ? ((totalBalance / data.summary.income) * 100).toFixed(1) : 0;
+
+    // 1. Overall Financial Health
     if (data.summary.expense > data.summary.income && data.summary.income > 0) {
-      insights.push({ type: 'danger', title: 'Severe Spending Deficit', description: `Your expenses exceed your income.`, suggestion: `Cut non-essential expenses immediately.` });
+      insights.push({ 
+        type: 'danger', 
+        title: 'Severe Spending Deficit', 
+        description: `Your total expenses (${formatCurrency(data.summary.expense)}) exceed your total income (${formatCurrency(data.summary.income)}) by ${formatCurrency(data.summary.expense - data.summary.income)}. This means you are spending more than you earn, which is unsustainable long-term. Your effective savings rate is negative at ${savingsRate}%.`, 
+        suggestion: `Immediately review your largest expense categories below and identify at least 2 areas where you can cut back by 15-20%. Consider setting strict category budgets in the Planning tab to cap your spending.` 
+      });
+    } else if (data.summary.income > 0) {
+      const ratio = data.summary.expense / data.summary.income;
+      if (ratio > 0.8) {
+        insights.push({
+          type: 'warning',
+          title: 'High Spending Ratio',
+          description: `You are spending ${(ratio * 100).toFixed(0)}% of your income. While you are still in the green, your savings rate of ${savingsRate}% leaves very little margin for emergencies. Your current balance is ${formatCurrency(totalBalance)}.`,
+          suggestion: `Financial advisors recommend keeping your spending below 70% of income. Try to identify one recurring expense you could reduce or eliminate this month.`
+        });
+      } else {
+        insights.push({ 
+          type: 'success', 
+          title: 'Strong Financial Health', 
+          description: `Your savings rate is ${savingsRate}%, which is excellent. You are spending ${(ratio * 100).toFixed(0)}% of your income and building a healthy surplus of ${formatCurrency(totalBalance)}. This month you earned ${formatCurrency(currentMonthStats.income)} and spent ${formatCurrency(currentMonthStats.expense)}.`, 
+          suggestion: `Consider allocating your surplus into high-yield savings or investments. At your current rate, you could save ${formatCurrency(parseFloat(String(savingsRate)) / 100 * data.summary.income * 12)} annually.` 
+        });
+      }
     }
-    
-    // Budget checks
+
+    // 2. Budget checks with detailed context
     data.budgets.forEach((b: Budget) => {
        const spent = data.expensesByCategory[b.category] || 0;
+       const pct = b.monthlyLimit > 0 ? ((spent / b.monthlyLimit) * 100).toFixed(0) : 0;
        if (spent > b.monthlyLimit) {
-         insights.push({ type: 'danger', title: `Budget Exceeded: ${b.category}`, description: `You spent ${formatCurrency(spent)}, exceeding your budget of ${formatCurrency(b.monthlyLimit)}.`, suggestion: 'Pause spending in this category.' });
+         insights.push({ 
+           type: 'danger', 
+           title: `Budget Exceeded: ${b.category}`, 
+           description: `You spent ${formatCurrency(spent)} in "${b.category}", which is ${pct}% of your ${formatCurrency(b.monthlyLimit)} monthly budget — exceeding it by ${formatCurrency(spent - b.monthlyLimit)}.`, 
+           suggestion: `Pause all non-essential spending in this category immediately. Consider reducing your budget allocation or finding cheaper alternatives for your ${b.category} expenses.` 
+         });
+       } else if (spent > b.monthlyLimit * 0.8) {
+         insights.push({
+           type: 'warning',
+           title: `Budget Warning: ${b.category}`,
+           description: `You've used ${pct}% of your ${formatCurrency(b.monthlyLimit)} budget for "${b.category}" (${formatCurrency(spent)} spent). You have ${formatCurrency(b.monthlyLimit - spent)} remaining.`,
+           suggestion: `You're approaching your limit. Be mindful of additional ${b.category} expenses for the rest of the month.`
+         });
        }
     });
 
-    if (insights.length === 0 && currentMonthStats.income > currentMonthStats.expense) {
-      insights.push({ type: 'success', title: 'Excellent Financial Health', description: `Your spending is perfectly balanced!`, suggestion: `Allocate surplus to savings.` });
+    // 3. Category analysis
+    const categories = Object.entries(data.expensesByCategory).sort(([,a], [,b]) => (b as number) - (a as number));
+    if (categories.length >= 2) {
+      const [topCat, topAmt] = categories[0];
+      const topPct = data.summary.expense > 0 ? ((topAmt as number / data.summary.expense) * 100).toFixed(0) : 0;
+      insights.push({
+        type: 'info',
+        title: `Top Spending: ${topCat}`,
+        description: `"${topCat}" is your largest expense category at ${formatCurrency(topAmt as number)}, representing ${topPct}% of all expenses. ${categories.length > 1 ? `Your second largest category is "${categories[1][0]}" at ${formatCurrency(categories[1][1] as number)}.` : ''}`,
+        suggestion: `Analyze whether your "${topCat}" spending aligns with your priorities. Small daily savings in your top category can compound significantly over a year.`
+      });
     }
-    return insights.length > 0 ? insights : [{ type: 'info', title: 'Tracking Progress', description: 'Keep tracking your expenses to build a clearer picture of your financial health.', suggestion: 'Consistently log every expense to get better AI insights next month.' }];
-  }, [data, currentMonthStats]);
+
+    // 4. Subscription impact
+    if (data.subscriptions.length > 0) {
+      const totalMonthly = data.subscriptions.reduce((sum: number, s: any) => {
+        return sum + (s.billingCycle === 'yearly' ? s.amount / 12 : s.amount);
+      }, 0);
+      insights.push({
+        type: 'info',
+        title: `Recurring Costs: ${formatCurrency(totalMonthly)}/mo`,
+        description: `You have ${data.subscriptions.length} active subscription(s) costing approximately ${formatCurrency(totalMonthly)} per month (${formatCurrency(totalMonthly * 12)}/year). This represents ${data.summary.income > 0 ? ((totalMonthly / data.summary.income * 100).toFixed(1)) : '?'}% of your total income.`,
+        suggestion: `Review each subscription quarterly. Cancel any service you haven't used in the last 30 days. Even one cancelled subscription can save hundreds annually.`
+      });
+    }
+
+    // 5. Safe to Spend context
+    if (safeToSpend > 0) {
+      insights.push({
+        type: 'info',
+        title: `Daily Allowance: ${formatCurrency(safeToSpend)}`,
+        description: `Based on your income and current month's expenses, you can safely spend up to ${formatCurrency(safeToSpend)} per day for the remainder of the month without going over budget.`,
+        suggestion: `Try to stay below this daily limit. If you have a large planned expense coming up, reduce daily spending in advance to compensate.`
+      });
+    }
+
+    return insights.length > 0 ? insights : [{ type: 'info', title: 'Tracking Progress', description: 'Keep tracking your expenses to build a clearer picture of your financial health. The more data you log, the more accurate and detailed your insights become.', suggestion: 'Consistently log every expense to get better AI insights next month.' }];
+  }, [data, currentMonthStats, safeToSpend]);
 
   const TabButton = ({ active, onClick, icon, label }: { active: boolean, onClick: () => void, icon: React.ReactNode, label: string }) => (
     <button 
@@ -261,7 +306,7 @@ export default function FinancePage() {
       <header className={styles.header}>
         <div>
           <h1 className={styles.headerTitle}>Finance</h1>
-          <p className={styles.headerSubtitle}>Track expenses, achieve goals, and build wealth</p>
+          <p className={styles.headerSubtitle}>Track expenses, set budgets, and manage subscriptions</p>
         </div>
         <div className={styles.headerActions}>
           <Button leftIcon={<Plus size={18} />} onClick={() => setIsModalOpen(true)}>New Transaction</Button>
@@ -347,7 +392,7 @@ export default function FinancePage() {
               <div className={styles.panel} style={{ padding: 0, overflow: 'hidden' }}>
                 <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
                   <TabButton active={rightTab === 'insights'} onClick={() => setRightTab('insights')} icon={<PieChart size={16}/>} label="Overview & Insights" />
-                  <TabButton active={rightTab === 'planning'} onClick={() => setRightTab('planning')} icon={<PiggyBank size={16}/>} label="Planning & Goals" />
+                  <TabButton active={rightTab === 'planning'} onClick={() => setRightTab('planning')} icon={<Wallet size={16}/>} label="Budgets" />
                 </div>
 
                 <div style={{ padding: '24px' }}>
@@ -413,22 +458,6 @@ export default function FinancePage() {
                           )}
                         </div>
                       </div>
-
-                      <div>
-                        <div className="flex justify-between items-center mb-4">
-                          <h3 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Savings Goals</h3>
-                          <Button variant="ghost" size="sm" onClick={() => setIsSavingsModalOpen(true)} leftIcon={<Plus size={16}/>}>Add</Button>
-                        </div>
-                        <div className="flex flex-col gap-4">
-                          {data.savingsGoals.length === 0 ? (
-                             <div className="text-center py-10 text-muted">No savings goals set.</div>
-                          ) : (
-                            data.savingsGoals.map((g: SavingsGoal) => (
-                              <SavingsGoalCard key={g._id} goal={g} onDelete={handleDeleteSavings} onAddFunds={handleAddFunds} />
-                            ))
-                          )}
-                        </div>
-                      </div>
                     </div>
                   )}
                 </div>
@@ -486,7 +515,7 @@ export default function FinancePage() {
             </select>
           </div>
           <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
-            <label className={formStyles.label}>Monthly Limit ($)</label>
+            <label className={formStyles.label}>Monthly Limit (₹)</label>
             <input type="number" required className={formStyles.input} value={budgetForm.monthlyLimit} onChange={(e) => setBudgetForm({ ...budgetForm, monthlyLimit: e.target.value })} />
           </div>
           <Button type="submit" fullWidth className="mt-4">Save Budget</Button>
@@ -501,33 +530,27 @@ export default function FinancePage() {
             <input required className={formStyles.input} value={subForm.name} onChange={(e) => setSubForm({ ...subForm, name: e.target.value })} placeholder="e.g. Netflix" />
           </div>
           <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
-            <label className={formStyles.label}>Amount</label>
+            <label className={formStyles.label}>Amount (₹)</label>
             <input type="number" required className={formStyles.input} value={subForm.amount} onChange={(e) => setSubForm({ ...subForm, amount: e.target.value })} />
           </div>
           <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
+            <label className={formStyles.label}>Billing Cycle</label>
+            <select className={formStyles.input} value={subForm.billingCycle} onChange={(e) => setSubForm({ ...subForm, billingCycle: e.target.value })} style={{ backgroundColor: 'rgba(15, 23, 42, 0.9)' }}>
+              <option value="monthly">Monthly</option>
+              <option value="yearly">Yearly</option>
+            </select>
+          </div>
+          <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
             <label className={formStyles.label}>Next Billing Date</label>
-            <input type="date" required className={formStyles.input} value={subForm.nextBillingDate} onChange={(e) => setSubForm({ ...subForm, nextBillingDate: e.target.value })} />
+            <input type="date" required className={formStyles.input} value={subForm.nextBillingDate} min={todayStr} onChange={(e) => setSubForm({ ...subForm, nextBillingDate: e.target.value })} />
+          </div>
+          <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
+            <label className={formStyles.label}>Category</label>
+            <select className={formStyles.input} value={subForm.category} onChange={(e) => setSubForm({ ...subForm, category: e.target.value })} style={{ backgroundColor: 'rgba(15, 23, 42, 0.9)' }}>
+              {EXPENSE_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            </select>
           </div>
           <Button type="submit" fullWidth className="mt-4">Save Subscription</Button>
-        </form>
-      </Modal>
-
-      {/* Savings Goal Modal */}
-      <Modal isOpen={isSavingsModalOpen} onClose={() => setIsSavingsModalOpen(false)} title="Create Savings Goal" size="sm">
-        <form onSubmit={handleSaveSavings} className={formStyles.form}>
-           <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
-            <label className={formStyles.label}>Goal Name</label>
-            <input required className={formStyles.input} value={savingsForm.name} onChange={(e) => setSavingsForm({ ...savingsForm, name: e.target.value })} placeholder="e.g. Vacation" />
-          </div>
-          <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
-            <label className={formStyles.label}>Target Amount</label>
-            <input type="number" required className={formStyles.input} value={savingsForm.targetAmount} onChange={(e) => setSavingsForm({ ...savingsForm, targetAmount: e.target.value })} />
-          </div>
-          <div className={`${formStyles.field} ${formStyles.fullWidth}`}>
-            <label className={formStyles.label}>Deadline (Optional)</label>
-            <input type="date" className={formStyles.input} value={savingsForm.deadline} onChange={(e) => setSavingsForm({ ...savingsForm, deadline: e.target.value })} />
-          </div>
-          <Button type="submit" fullWidth className="mt-4">Create Goal</Button>
         </form>
       </Modal>
 

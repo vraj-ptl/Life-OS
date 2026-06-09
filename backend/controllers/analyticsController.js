@@ -1,6 +1,8 @@
 const Task = require('../models/Task');
 const Habit = require('../models/Habit');
 const Transaction = require('../models/Transaction');
+const Budget = require('../models/Budget');
+const Subscription = require('../models/Subscription');
 const aiEngine = require('../services/aiEngine');
 
 /**
@@ -225,6 +227,35 @@ exports.getDetailedAnalytics = async (req, res) => {
 
     const totalIncome = transactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const totalExpenses = transactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+
+    // Fetch budgets and subscriptions for analytics
+    const budgets = await Budget.find({ userId });
+    const subscriptions = await Subscription.find({ userId, isActive: true });
+
+    // Budget utilization: compare spent vs allocated per category
+    const expensesByCategory = {};
+    transactions.forEach(t => {
+      if (t.type === 'expense') {
+        expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+      }
+    });
+
+    const budgetUtilization = budgets.map(b => ({
+      category: b.category,
+      allocated: b.monthlyLimit,
+      spent: expensesByCategory[b.category] || 0,
+      utilization: b.monthlyLimit > 0 ? Math.round(((expensesByCategory[b.category] || 0) / b.monthlyLimit) * 100) : 0
+    }));
+
+    // Subscription breakdown for chart
+    const subscriptionBreakdown = subscriptions.map(s => ({
+      name: s.name,
+      amount: s.amount,
+      cycle: s.billingCycle,
+      monthlyEquivalent: s.billingCycle === 'yearly' ? +(s.amount / 12).toFixed(2) : s.amount
+    }));
+
+    const totalSubscriptionCost = subscriptionBreakdown.reduce((sum, s) => sum + s.monthlyEquivalent, 0);
     
     const numericalSummaries = {
       netFlow: totalIncome - totalExpenses,
@@ -234,7 +265,10 @@ exports.getDetailedAnalytics = async (req, res) => {
       totalCompletedTasks,
       totalMissedTasks,
       totalIncome,
-      totalExpenses
+      totalExpenses,
+      totalSubscriptionCost,
+      budgetCount: budgets.length,
+      subscriptionCount: subscriptions.length
     };
 
     // 3. Generate AI Insight for detailed view
@@ -248,10 +282,11 @@ exports.getDetailedAnalytics = async (req, res) => {
           netFlow: numericalSummaries.netFlow,
           mostProductiveDay: numericalSummaries.mostProductiveDay,
           topTags: tagsArray.slice(0, 3).map(t => t.name).join(', '),
-          productivityTimeOfDay: timeOfDayArray.sort((a, b) => b.value - a.value)[0]?.name || 'N/A'
+          productivityTimeOfDay: timeOfDayArray.sort((a, b) => b.value - a.value)[0]?.name || 'N/A',
+          totalSubscriptionCost,
+          budgetUtilization: budgetUtilization.map(b => `${b.category}: ${b.utilization}%`).join(', ')
         }
       };
-      // We use the existing aiEngine to generate an insight
       aiInsight = await aiEngine.generateDailyInsights(userId, insightContext);
     } catch (e) {
       console.error('Failed to generate AI insight', e);
@@ -264,7 +299,9 @@ exports.getDetailedAnalytics = async (req, res) => {
         taskDistribution: tagsArray,
         timeOfDay: timeOfDayArray,
         numericalSummaries,
-        aiInsight
+        aiInsight,
+        budgetUtilization,
+        subscriptionBreakdown
       }
     });
 

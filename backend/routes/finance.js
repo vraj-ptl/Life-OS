@@ -10,9 +10,6 @@ const {
   deleteBudget,
   addSubscription,
   deleteSubscription,
-  addSavingsGoal,
-  updateSavingsGoal,
-  deleteSavingsGoal,
   chatFinanceAI
 } = require('../controllers/financeController');
 
@@ -31,11 +28,6 @@ router.delete('/budgets/:id', mongoIdValidation, deleteBudget);
 // Subscriptions
 router.post('/subscriptions', addSubscription);
 router.delete('/subscriptions/:id', mongoIdValidation, deleteSubscription);
-
-// Savings Goals
-router.post('/savings-goals', addSavingsGoal);
-router.put('/savings-goals/:id', mongoIdValidation, updateSavingsGoal);
-router.delete('/savings-goals/:id', mongoIdValidation, deleteSavingsGoal);
 
 // Chatbot
 router.post('/chat', chatFinanceAI);

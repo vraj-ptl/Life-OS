@@ -12,7 +12,9 @@ import TaskDistributionChart from '@/components/features/analytics/TaskDistribut
 import TimeOfDayChart from '@/components/features/analytics/TimeOfDayChart';
 import NumericalInsights from '@/components/features/analytics/NumericalInsights';
 import AIInsightPanel from '@/components/features/analytics/AIInsightPanel';
-import { Activity, Zap, TrendingUp, CheckCircle, Calendar } from 'lucide-react';
+import BudgetUtilizationChart from '@/components/features/analytics/BudgetUtilizationChart';
+import SubscriptionBreakdownChart from '@/components/features/analytics/SubscriptionBreakdownChart';
+import { Activity, Zap, TrendingUp, CheckCircle, Calendar, Wallet, Repeat } from 'lucide-react';
 
 export default function AnalyticsPage() {
   const [data, setData] = useState<any>(null);
@@ -134,9 +136,21 @@ export default function AnalyticsPage() {
             />
             <StatCard 
               title="Net Financial Flow" 
-              value={`$${(data.numericalSummaries?.netFlow || 0).toFixed(2)}`} 
+              value={`₹${(data.numericalSummaries?.netFlow || 0).toLocaleString()}`} 
               label="Income vs Expenses" 
               icon={<TrendingUp size={24} color="#10b981" />} 
+            />
+            <StatCard 
+              title="Subscription Costs" 
+              value={`₹${(data.numericalSummaries?.totalSubscriptionCost || 0).toLocaleString()}/mo`} 
+              label={`${data.numericalSummaries?.subscriptionCount || 0} Active`} 
+              icon={<Repeat size={24} color="#06b6d4" />} 
+            />
+            <StatCard 
+              title="Budgets Active" 
+              value={data.numericalSummaries?.budgetCount || 0} 
+              label="Categories Tracked" 
+              icon={<Wallet size={24} color="#f59e0b" />} 
             />
           </div>
 
@@ -151,8 +165,12 @@ export default function AnalyticsPage() {
           </div>
 
           <div className={styles.chartsGrid}>
+            <BudgetUtilizationChart data={data.budgetUtilization} />
+            <SubscriptionBreakdownChart data={data.subscriptionBreakdown} />
+          </div>
+
+          <div className={styles.chartsGrid}>
              <EnergyMatrixChart data={data.timelineData} />
-             {/* To keep layout balanced if there's an odd number of wide charts, we can just let it span or be beside another. */}
           </div>
 
           <div className={styles.twoColGrid}>

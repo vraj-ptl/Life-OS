@@ -61,13 +61,17 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let assistantContent = '';
+      let buffer = '';
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        
+        // Keep the last incomplete line in the buffer
+        buffer = lines.pop() || '';
         
         for (const line of lines) {
           if (line.startsWith('data: ')) {
@@ -88,7 +92,9 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
               } else if (parsed.error) {
                 console.error(parsed.error);
               }
-            } catch (e) {}
+            } catch (e) {
+              // Ignore incomplete JSON parses and wait for more data
+            }
           }
         }
       }

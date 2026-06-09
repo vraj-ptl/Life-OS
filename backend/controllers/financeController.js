@@ -2,8 +2,46 @@ const { validationResult } = require('express-validator');
 const Transaction = require('../models/Transaction');
 const Budget = require('../models/Budget');
 const Subscription = require('../models/Subscription');
-const SavingsGoal = require('../models/SavingsGoal');
 const aiEngine = require('../services/aiEngine');
+
+/**
+ * Process due subscriptions — auto-creates expense transactions
+ * for any subscription whose nextBillingDate <= today.
+ */
+const processSubscriptions = async (userId) => {
+  const today = new Date();
+  today.setHours(23, 59, 59, 999); // end of today
+
+  const dueSubscriptions = await Subscription.find({
+    userId,
+    isActive: true,
+    nextBillingDate: { $lte: today }
+  });
+
+  for (const sub of dueSubscriptions) {
+    // Create an expense transaction for this subscription payment
+    await Transaction.create({
+      userId,
+      type: 'expense',
+      amount: sub.amount,
+      category: sub.category || 'Entertainment',
+      description: `Subscription: ${sub.name}`,
+      date: sub.nextBillingDate
+    });
+
+    // Advance nextBillingDate to next cycle
+    const nextDate = new Date(sub.nextBillingDate);
+    if (sub.billingCycle === 'yearly') {
+      nextDate.setFullYear(nextDate.getFullYear() + 1);
+    } else {
+      nextDate.setMonth(nextDate.getMonth() + 1);
+    }
+    sub.nextBillingDate = nextDate;
+    await sub.save();
+  }
+
+  return dueSubscriptions.length;
+};
 
 /**
  * @desc    Get all finance data
@@ -13,6 +51,9 @@ exports.getFinanceData = async (req, res) => {
   try {
     const { month, year } = req.query;
     
+    // Process any due subscriptions first (auto-deduction engine)
+    await processSubscriptions(req.userId);
+
     // Build query for date range if provided
     const query = { userId: req.userId };
     
@@ -25,7 +66,6 @@ exports.getFinanceData = async (req, res) => {
     const transactions = await Transaction.find(query).sort({ date: -1 });
     const budgets = await Budget.find({ userId: req.userId });
     const subscriptions = await Subscription.find({ userId: req.userId });
-    const savingsGoals = await SavingsGoal.find({ userId: req.userId });
 
     // Calculate Summary
     const summary = transactions.reduce((acc, curr) => {
@@ -54,8 +94,7 @@ exports.getFinanceData = async (req, res) => {
         expensesByCategory,
         transactions,
         budgets,
-        subscriptions,
-        savingsGoals
+        subscriptions
       },
     });
   } catch (error) {
@@ -107,9 +146,44 @@ exports.deleteBudget = async (req, res) => {
 // --- SUBSCRIPTIONS ---
 exports.addSubscription = async (req, res) => {
   try {
+    // Validate: nextBillingDate must be today or future
+    const billingDate = new Date(req.body.nextBillingDate);
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    
+    if (billingDate < todayStart) {
+      return res.status(400).json({ success: false, message: 'Billing date cannot be in the past.' });
+    }
+
     const subscription = await Subscription.create({ ...req.body, userId: req.userId });
+
+    // If billing date is today, immediately create the expense transaction
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (billingDate <= today) {
+      await Transaction.create({
+        userId: req.userId,
+        type: 'expense',
+        amount: subscription.amount,
+        category: subscription.category || 'Entertainment',
+        description: `Subscription: ${subscription.name}`,
+        date: billingDate
+      });
+
+      // Advance to next billing cycle
+      const nextDate = new Date(billingDate);
+      if (subscription.billingCycle === 'yearly') {
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+      } else {
+        nextDate.setMonth(nextDate.getMonth() + 1);
+      }
+      subscription.nextBillingDate = nextDate;
+      await subscription.save();
+    }
+
     res.status(201).json({ success: true, data: { subscription } });
   } catch (error) {
+    console.error('AddSubscription error:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
@@ -117,38 +191,6 @@ exports.addSubscription = async (req, res) => {
 exports.deleteSubscription = async (req, res) => {
   try {
     await Subscription.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-    res.json({ success: true, message: 'Deleted' });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Server Error' });
-  }
-};
-
-// --- SAVINGS GOALS ---
-exports.addSavingsGoal = async (req, res) => {
-  try {
-    const savingsGoal = await SavingsGoal.create({ ...req.body, userId: req.userId });
-    res.status(201).json({ success: true, data: { savingsGoal } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Server Error' });
-  }
-};
-
-exports.updateSavingsGoal = async (req, res) => {
-  try {
-    const savingsGoal = await SavingsGoal.findOneAndUpdate(
-      { _id: req.params.id, userId: req.userId },
-      req.body,
-      { new: true }
-    );
-    res.json({ success: true, data: { savingsGoal } });
-  } catch (error) {
-    res.status(500).json({ success: false, message: 'Server Error' });
-  }
-};
-
-exports.deleteSavingsGoal = async (req, res) => {
-  try {
-    await SavingsGoal.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     res.json({ success: true, message: 'Deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Server Error' });
