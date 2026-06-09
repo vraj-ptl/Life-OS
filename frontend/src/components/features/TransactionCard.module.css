@@ -1,0 +1,154 @@
+.wrapper {
+  position: relative;
+  transform-style: preserve-3d;
+  will-change: transform, opacity;
+}
+
+.previewCard {
+  overflow: visible;
+  min-height: 100%;
+  border-color: rgba(148, 163, 184, 0.14);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.98) 0%, rgba(11, 17, 32, 0.96) 58%, rgba(3, 7, 18, 0.98) 100%),
+    linear-gradient(135deg, rgba(14, 165, 233, 0.18), rgba(16, 185, 129, 0.08));
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.34);
+  border-radius: var(--radius-xl);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.previewCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.4);
+}
+
+.previewCard::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.055) 36%, transparent 58%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 28%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--transition-base);
+}
+
+.previewCard:hover::before {
+  opacity: 1;
+}
+
+.typeRail {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  border-radius: inherit;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--type-color) 35%, transparent);
+  background: linear-gradient(180deg, var(--type-color), color-mix(in srgb, var(--type-color) 45%, transparent));
+}
+
+.cardInner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 24px 20px 28px;
+}
+
+.topRow {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 14px;
+}
+
+.iconWrapper {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  border-radius: 12px;
+  color: var(--type-color);
+  background: color-mix(in srgb, var(--type-color) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--type-color) 25%, transparent);
+}
+
+.titleBlock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.title {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  font-weight: var(--font-bold);
+  line-height: 1.2;
+  letter-spacing: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dateCategory {
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.amountBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.amount {
+  font-size: 1.2rem;
+  font-weight: var(--font-bold);
+  color: var(--type-color);
+}
+
+.deleteBtn {
+  color: var(--text-muted);
+  transition: color var(--transition-fast);
+  padding: 4px;
+  opacity: 0;
+}
+
+.previewCard:hover .deleteBtn {
+  opacity: 1;
+}
+
+.deleteBtn:hover {
+  color: var(--color-danger);
+}
+
+@media (max-width: 520px) {
+  .cardInner {
+    padding: 16px 16px 16px 20px;
+    gap: 12px;
+  }
+  
+  .iconWrapper {
+    width: 36px;
+    height: 36px;
+  }
+  
+  .title {
+    font-size: 1rem;
+  }
+  
+  .amount {
+    font-size: 1.1rem;
+  }
+}
