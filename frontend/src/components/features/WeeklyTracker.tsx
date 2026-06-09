@@ -20,6 +20,7 @@ interface Habit {
   timeOfDay: string;
   currentStreak: number;
   logs: HabitLog[];
+  createdAt?: string;
 }
 
 interface WeeklyTrackerProps {
@@ -215,8 +216,15 @@ export const WeeklyTracker = ({ habits }: WeeklyTrackerProps) => {
                   return log?.isCompleted;
                 }).length;
 
-                // Determine days in past (including today)
-                const pastDays = days.filter(d => d.date <= todayStr).length;
+                // Determine days in past (including today) that are on or after creation
+                const pastDays = days.filter(d => {
+                  const dDate = new Date(d.date);
+                  dDate.setHours(0,0,0,0);
+                  const cDate = new Date(habit.createdAt || parseInt(habit._id.substring(0,8), 16) * 1000);
+                  cDate.setHours(0,0,0,0);
+                  return d.date <= todayStr && dDate.getTime() >= cDate.getTime();
+                }).length;
+                
                 const scorePercent = pastDays > 0 ? Math.round((weekCompletions / pastDays) * 100) : 0;
 
                 return (
@@ -265,6 +273,12 @@ export const WeeklyTracker = ({ habits }: WeeklyTrackerProps) => {
                     </td>
 
                     {days.map(day => {
+                      const dayDateObj = new Date(day.date);
+                      dayDateObj.setHours(0,0,0,0);
+                      const createdDateObj = new Date(habit.createdAt || parseInt(habit._id.substring(0,8), 16) * 1000);
+                      createdDateObj.setHours(0,0,0,0);
+                      
+                      const isBeforeCreation = dayDateObj.getTime() < createdDateObj.getTime();
                       const log = habit.logs?.find((l: HabitLog) => l.date.startsWith(day.date));
                       const isFuture = day.date > todayStr;
                       const isCompleted = log?.isCompleted;
@@ -291,6 +305,23 @@ export const WeeklyTracker = ({ habits }: WeeklyTrackerProps) => {
                                 justifyContent: 'center',
                               }}
                             />
+                          ) : isBeforeCreation ? (
+                            <div
+                              style={{
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '8px',
+                                background: 'rgba(255,255,255,0.02)',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'rgba(255,255,255,0.2)',
+                                fontSize: '14px',
+                                fontWeight: 'bold'
+                              }}
+                            >
+                              -
+                            </div>
                           ) : isCompleted ? (
                             <div
                               style={{
@@ -396,8 +427,16 @@ export const WeeklyTracker = ({ habits }: WeeklyTrackerProps) => {
     for (const week of monthWeeks) {
       const days = getDaysForWeek(week.start);
       for (const habit of habits) {
+        const cDate = new Date(habit.createdAt || parseInt(habit._id.substring(0,8), 16) * 1000);
+        cDate.setHours(0,0,0,0);
+        
         for (const day of days) {
           if (day.date > todayStr) continue;
+          
+          const dDate = new Date(day.date);
+          dDate.setHours(0,0,0,0);
+          if (dDate.getTime() < cDate.getTime()) continue;
+          
           totalPossible++;
           const log = habit.logs?.find((l: HabitLog) => l.date.startsWith(day.date));
           if (log?.isCompleted) totalCompleted++;

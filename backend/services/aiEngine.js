@@ -36,8 +36,13 @@ const ruleBasedInsights = (userData) => {
 exports.generateDailyInsights = async (userId, userContext) => {
   try {
     const prompt = `
-      You are Life OS, a personal AI coach. 
-      Analyze the following user data and provide a short, motivating, 2-paragraph daily insight focusing on productivity, habits, and finances.
+      You are Life OS, an advanced personal AI coach. 
+      Analyze the following user data and provide a detailed, in-depth analysis. 
+      You MUST structure your response into exactly three distinct paragraphs:
+      1. Task Productivity & Time-of-Day: Analyze their completion rates, high-energy task management, and when they are most productive.
+      2. Habit Consistency: Analyze their habit streaks, consistency rates, and offer specific advice on maintaining momentum.
+      3. Financial Health: Analyze their net flow (Income vs Expenses) and give a brief financial health check.
+      Keep it motivating but highly analytical and specific to the data provided.
       User Data: ${JSON.stringify(userContext)}
     `;
 
@@ -83,5 +88,70 @@ exports.suggestTaskTime = (taskData, userProductivityPattern) => {
       reason: 'Low energy tasks are perfect for the mid-afternoon slump.',
       confidence: 0.75
     };
+  }
+};
+
+/**
+ * Finance AI Chatbot stream
+ */
+exports.chatWithFinanceAI = async (messages, context, res) => {
+  const systemPrompt = `You are a financial advisor AI strictly embedded in the user's personal finance dashboard.
+Your ONLY purpose is to answer questions related to personal finance, budgeting, saving, and the user's provided transactions.
+If asked about programming, general knowledge, or other non-finance topics, you MUST politely decline and remind them you are a finance AI.
+
+User Context:
+${JSON.stringify(context, null, 2)}
+`;
+
+  const ollamaMessages = [
+    { role: 'system', content: systemPrompt },
+    ...messages
+  ];
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  try {
+    const response = await axios({
+      method: 'post',
+      url: 'http://localhost:11434/api/chat',
+      data: {
+        model: MODEL_NAME,
+        messages: ollamaMessages,
+        stream: true
+      },
+      responseType: 'stream'
+    });
+
+    response.data.on('data', (chunk) => {
+      const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
+      for (const line of lines) {
+        try {
+          const parsed = JSON.parse(line);
+          if (parsed.message && parsed.message.content) {
+            res.write(`data: ${JSON.stringify({ content: parsed.message.content })}\n\n`);
+          }
+          if (parsed.done) {
+            res.write(`data: [DONE]\n\n`);
+            res.end();
+          }
+        } catch(e) {}
+      }
+    });
+
+    response.data.on('end', () => {
+       res.end();
+    });
+    
+    response.data.on('error', () => {
+      res.write(`data: [DONE]\n\n`);
+      res.end();
+    });
+  } catch (err) {
+    console.error('[AI Engine] Chat streaming failed', err.message);
+    res.write(`data: ${JSON.stringify({ error: 'Failed to connect to AI engine' })}\n\n`);
+    res.write(`data: [DONE]\n\n`);
+    res.end();
   }
 };

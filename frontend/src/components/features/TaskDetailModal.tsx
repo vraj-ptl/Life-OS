@@ -151,14 +151,7 @@ export const TaskDetailModal = ({ isOpen, onClose, task, onEdit, onStatusChange,
               Mark as Done
             </Button>
           )}
-          {task.status === 'done' && onStatusChange && (
-            <Button 
-              leftIcon={<Repeat size={16} />} 
-              onClick={() => { onStatusChange(task._id, 'in-progress'); onClose(); }}
-            >
-              Reopen
-            </Button>
-          )}
+
           {task.status !== 'overdue' && (
             <Button leftIcon={<Edit2 size={16} />} onClick={() => { onClose(); onEdit(task); }}>
               Edit Task

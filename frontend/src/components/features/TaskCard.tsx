@@ -288,8 +288,7 @@ export const TaskCard = ({
   );
 
   const toggleStatus = () => {
-    if (task.status === 'done') {
-      onStatusChange(task._id, 'in-progress');
+    if (task.status === 'done' || task.status === 'todo' || task.status === 'overdue') {
       return;
     }
 
@@ -390,48 +389,6 @@ export const TaskCard = ({
         style={{ top: menuPosition.top, left: menuPosition.left }}
         onClick={(event) => event.stopPropagation()}
       >
-        {task.status !== 'todo' && task.status !== 'done' && task.status !== 'overdue' && (
-          <button
-            type="button"
-            className={styles.menuAction}
-            onClick={() => {
-              setShowMenu(false);
-              onStatusChange(task._id, 'todo');
-            }}
-          >
-            <ListTodo size={16} />
-            Move to To Do
-          </button>
-        )}
-        
-        {task.status !== 'in-progress' && task.status !== 'done' && task.status !== 'overdue' && (
-          <button
-            type="button"
-            className={styles.menuAction}
-            onClick={() => {
-              setShowMenu(false);
-              onStatusChange(task._id, 'in-progress');
-            }}
-          >
-            <Zap size={16} />
-            Start Progress
-          </button>
-        )}
-
-        {task.status !== 'done' && !hasSubtasks && task.status !== 'overdue' && (
-          <button
-            type="button"
-            className={styles.menuAction}
-            onClick={() => {
-              setShowMenu(false);
-              onStatusChange(task._id, 'done');
-            }}
-          >
-            <CheckCircle2 size={16} />
-            Mark as Done
-          </button>
-        )}
-
         {task.status !== 'overdue' && (
           <button
             type="button"
@@ -479,14 +436,14 @@ export const TaskCard = ({
               <button
                 ref={statusButtonRef}
                 type="button"
-                disabled={task.status === 'todo' || task.status === 'overdue'}
+                disabled={task.status === 'todo' || task.status === 'overdue' || task.status === 'done'}
                 className={`${styles.statusToggle} ${isDone ? styles.statusToggleDone : ''} ${task.status === 'overdue' ? styles.statusToggleOverdue : ''}`}
                 onClick={(event) => {
                   event.stopPropagation();
                   toggleStatus();
                 }}
-                title={task.status === 'overdue' ? 'Overdue tasks are locked' : task.status === 'todo' ? 'Task must be in progress to complete' : 'Toggle completion'}
-                aria-label={task.status === 'done' ? 'Reopen task' : 'Mark task as done'}
+                title={task.status === 'overdue' ? 'Overdue tasks are locked' : task.status === 'todo' ? 'Task must be in progress to complete' : task.status === 'done' ? 'Completed tasks cannot be reopened' : 'Toggle completion'}
+                aria-label={task.status === 'done' ? 'Completed' : 'Mark task as done'}
               >
                 <CheckCircle2 size={18} strokeWidth={2.4} />
               </button>

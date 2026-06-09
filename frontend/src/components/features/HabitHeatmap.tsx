@@ -3,12 +3,14 @@ import { Card } from '@/components/ui/Card';
 
 interface HabitHeatmapProps {
   completedDates: string[];
+  createdAt: string;
   color?: string;
   year?: number;
 }
 
 export const HabitHeatmap = ({ 
   completedDates, 
+  createdAt,
   color = '#10b981', // Default emerald green
   year = new Date().getFullYear() 
 }: HabitHeatmapProps) => {
@@ -16,9 +18,13 @@ export const HabitHeatmap = ({
   // Calculate grid data
   const gridData = useMemo(() => {
     const dates = new Set(completedDates.map(d => d.split('T')[0]));
+    const createdDateObj = new Date(createdAt);
+    createdDateObj.setHours(0,0,0,0);
     
     // We'll generate a grid for the last 52 weeks
     const today = new Date();
+    today.setHours(0,0,0,0);
+    
     const startDate = new Date(today);
     startDate.setDate(today.getDate() - 364); // 52 weeks * 7 days - 1
     
@@ -26,7 +32,7 @@ export const HabitHeatmap = ({
     const startDay = startDate.getDay();
     startDate.setDate(startDate.getDate() - startDay);
 
-    const weeks: { date: string; isCompleted: boolean; isFuture: boolean }[][] = [];
+    const weeks: { date: string; isCompleted: boolean; isFuture: boolean; isBeforeCreation: boolean }[][] = [];
     let currentDate = new Date(startDate);
 
     for (let w = 0; w < 52; w++) {
@@ -34,11 +40,13 @@ export const HabitHeatmap = ({
       for (let d = 0; d < 7; d++) {
         const dateString = currentDate.toISOString().split('T')[0];
         const isFuture = currentDate.getTime() > today.getTime();
+        const isBeforeCreation = currentDate.getTime() < createdDateObj.getTime();
         
         week.push({
           date: dateString,
           isCompleted: dates.has(dateString),
-          isFuture
+          isFuture,
+          isBeforeCreation
         });
         
         currentDate.setDate(currentDate.getDate() + 1);
@@ -47,7 +55,7 @@ export const HabitHeatmap = ({
     }
     
     return weeks;
-  }, [completedDates]);
+  }, [completedDates, createdAt]);
 
   // Hex to RGB for opacity variations
   const hexToRgb = (hex: string) => {
@@ -70,7 +78,7 @@ export const HabitHeatmap = ({
       
       <div className="flex w-full overflow-x-auto pb-2 scrollbar-thin">
         {/* Day labels */}
-        <div className="flex flex-col gap-[3px] text-[10px] text-muted mr-2 justify-between py-[12px] h-[105px]">
+        <div className="flex flex-col gap-[4px] text-[10px] text-muted mr-2 justify-between py-[12px] h-[115px]">
           <span>Mon</span>
           <span>Wed</span>
           <span>Fri</span>
@@ -80,31 +88,36 @@ export const HabitHeatmap = ({
           {/* Month labels */}
           <div className="flex text-[10px] text-muted h-4 relative">
             {monthLabels.map((weekIdx, i) => (
-              <span key={i} style={{ position: 'absolute', left: `${weekIdx * 13}px` }}>
+              <span key={i} style={{ position: 'absolute', left: `${weekIdx * 16}px` }}>
                 {months[(new Date().getMonth() + 1 + i) % 12]}
               </span>
             ))}
           </div>
 
           {/* Grid */}
-          <div className="flex gap-[3px]">
+          <div className="flex gap-[4px]">
             {gridData.map((week, wIdx) => (
-              <div key={wIdx} className="flex flex-col gap-[3px]">
+              <div key={wIdx} className="flex flex-col gap-[4px]">
                 {week.map((day, dIdx) => (
                   <div
                     key={`${wIdx}-${dIdx}`}
-                    className="w-[10px] h-[10px] rounded-[2px] transition-colors hover:ring-1 hover:ring-white/50"
+                    className="w-[12px] h-[12px] rounded-[2px] transition-colors hover:ring-1 flex items-center justify-center font-bold"
                     style={{
-                      backgroundColor: day.isFuture 
+                      backgroundColor: day.isFuture || day.isBeforeCreation
                         ? 'transparent' 
                         : day.isCompleted 
                           ? color 
-                          : 'rgba(255,255,255,0.05)',
+                          : 'rgba(239,68,68,0.1)', // Slight red background for missed
                       opacity: day.isCompleted ? 1 : undefined,
-                      boxShadow: day.isCompleted ? `0 0 5px rgba(${rgbColor}, 0.5)` : 'none'
+                      boxShadow: day.isCompleted ? `0 0 5px rgba(${rgbColor}, 0.5)` : 'none',
+                      color: day.isBeforeCreation ? '#64748b' : day.isCompleted ? '#fff' : '#ef4444',
+                      fontSize: '8px'
                     }}
-                    title={`${day.date}${day.isCompleted ? ' (Completed)' : ''}`}
-                  />
+                    title={`${day.date}${day.isCompleted ? ' (Completed)' : day.isBeforeCreation ? ' (Before Creation)' : day.isFuture ? '' : ' (Missed)'}`}
+                  >
+                    {!day.isFuture && day.isBeforeCreation && '-'}
+                    {!day.isFuture && !day.isBeforeCreation && !day.isCompleted && 'x'}
+                  </div>
                 ))}
               </div>
             ))}

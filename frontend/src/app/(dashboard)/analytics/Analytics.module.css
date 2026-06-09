@@ -1,0 +1,248 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+}
+
+.header {
+  margin-bottom: var(--space-sm);
+}
+
+.header h1 {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: var(--space-xs);
+}
+
+.header p {
+  color: var(--text-secondary);
+  font-size: var(--text-lg);
+}
+
+/* ─── Stat Cards Grid ──────────────────────────────────────────── */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-lg);
+}
+
+@media (max-width: 1024px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 600px) {
+  .statsGrid { grid-template-columns: 1fr; }
+}
+
+.statCard {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  transform-style: preserve-3d;
+  cursor: pointer;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.statCard:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+.statHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+  font-size: var(--text-sm);
+  transform: translateZ(20px);
+}
+
+.statValue {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  transform: translateZ(30px);
+}
+
+.statLabel {
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  transform: translateZ(20px);
+}
+
+/* ─── Charts Grid ──────────────────────────────────────────────── */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-2xl);
+}
+
+/* ─── Two Column Grid ──────────────────────────────────────────── */
+.twoColGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2xl);
+}
+
+@media (max-width: 1024px) {
+  .twoColGrid { grid-template-columns: 1fr; }
+}
+
+/* ─── Chart Container ──────────────────────────────────────────── */
+.chartContainer {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-sm);
+  min-height: 400px;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.chartContainer:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-glow-sm);
+}
+
+.chartContainer h2 {
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-lg);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+/* ─── Custom Tooltip ───────────────────────────────────────────── */
+.customTooltip {
+  background: rgba(11, 17, 32, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--border-default);
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.customTooltip p {
+  margin: 0.25rem 0;
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+}
+
+.customTooltip .label {
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--space-xs);
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: var(--space-xs);
+}
+
+/* ─── Numerical Insights ───────────────────────────────────────── */
+.insightsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+}
+
+@media (min-width: 768px) {
+  .insightsGrid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.insightItem {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding: var(--space-md);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+}
+
+.insightLabel {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--text-tertiary);
+}
+
+.insightValue {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+}
+
+.insightValuePositive { color: var(--color-success-light); }
+.insightValueNegative { color: var(--color-danger-light); }
+.insightValueViolet { color: #a78bfa; }
+.insightValueBlue { color: var(--color-info-light); }
+.insightValueAmber { color: var(--color-accent-light); }
+
+.insightSub {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+/* ─── AI Insight Panel ─────────────────────────────────────────── */
+.aiPanel {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.08) 0%, rgba(14, 165, 233, 0.06) 100%);
+  border-color: rgba(139, 92, 246, 0.25);
+  min-height: auto;
+}
+
+.aiPanel h2 {
+  color: #a78bfa;
+}
+
+.aiBody {
+  margin-top: var(--space-md);
+  padding: var(--space-lg);
+  background: rgba(139, 92, 246, 0.06);
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(139, 92, 246, 0.15);
+}
+
+.aiBody p {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-weight: var(--font-medium);
+  font-size: var(--text-base);
+}
+
+/* ─── Empty State ──────────────────────────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3xl) var(--space-xl);
+  color: var(--text-tertiary);
+  font-size: var(--text-base);
+}
+
+/* ─── Recharts Overrides (Dark Theme) ──────────────────────────── */
+.chartContainer :global(.recharts-legend-item-text) {
+  color: var(--text-secondary) !important;
+}
+
+.chartContainer :global(.recharts-cartesian-axis-line) {
+  stroke: rgba(255, 255, 255, 0.1);
+}
+
+.chartContainer :global(.recharts-brush-slide) {
+  fill: rgba(139, 92, 246, 0.15);
+  stroke: rgba(139, 92, 246, 0.3);
+}
+
+.chartContainer :global(.recharts-brush-texts text) {
+  fill: var(--text-secondary);
+}
