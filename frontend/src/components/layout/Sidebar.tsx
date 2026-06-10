@@ -26,7 +26,6 @@ const NAV_ITEMS = [
   { href: '/habits', label: 'Habits', icon: <Activity size={20} /> },
   { href: '/finance', label: 'Finance', icon: <Wallet size={20} /> },
   { href: '/analytics', label: 'Analytics', icon: <BarChart2 size={20} /> },
-  { href: '/email', label: 'Email', icon: <Mail size={20} /> },
   { href: '/calendar', label: 'Calendar', icon: <Calendar size={20} /> },
   { href: '/notes', label: 'Notes', icon: <BookOpen size={20} /> },
   { href: '/settings', label: 'Settings', icon: <Settings size={20} /> },

@@ -10,20 +10,21 @@ interface TimeOfDayChartProps {
 
 const COLORS = ['#fde047', '#f97316', '#a78bfa', '#38bdf8']; // Morning, Afternoon, Evening, Night
 
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className={styles.customTooltip}>
+        <p className={styles.label}>{payload[0].payload.name}</p>
+        <p style={{ color: payload[0].fill, fontWeight: 600 }}>
+          {payload[0].value} tasks completed
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function TimeOfDayChart({ data }: TimeOfDayChartProps) {
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className={styles.customTooltip}>
-          <p className={styles.label}>{payload[0].payload.name}</p>
-          <p style={{ color: payload[0].fill, fontWeight: 600 }}>
-            {payload[0].value} tasks completed
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
 
   return (
     <div className={`chart-card ${styles.chartContainer}`}>

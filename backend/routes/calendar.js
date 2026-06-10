@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
+const { getCalendarData } = require('../controllers/calendarController');
 const auth = require('../middleware/auth');
 
-router.get('/', auth, (req, res) => {
-  res.json({ success: true, message: 'Calendar route - coming soon', data: [] });
-});
+router.use(auth);
+
+router.get('/', getCalendarData);
 
 module.exports = router;
