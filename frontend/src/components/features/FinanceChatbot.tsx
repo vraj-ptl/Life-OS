@@ -42,7 +42,30 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
       // Add a placeholder message for the assistant
       setMessages((prev) => [...prev, { role: 'assistant', content: '' }]);
 
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('life-os-token');
+      
+      // Check if user is authenticated
+      if (!token) {
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1].content = 'Error: You need to be logged in to use the chatbot. Please log in first.';
+          return copy;
+        });
+        setIsTyping(false);
+        return;
+      }
+
+      // Check if context has data
+      if (!financeContext || Object.keys(financeContext).length === 0) {
+        setMessages((prev) => {
+          const copy = [...prev];
+          copy[copy.length - 1].content = 'Loading your finance data...';
+          return copy;
+        });
+        setIsTyping(false);
+        return;
+      }
+
       const response = await fetch('/api/finance/chat', {
         method: 'POST',
         headers: {
@@ -55,6 +78,11 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
         }),
         signal: controller.signal
       });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
 
       if (!response.body) throw new Error("No response body");
 
@@ -91,9 +119,12 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
                 });
               } else if (parsed.error) {
                 console.error(parsed.error);
+                const errorMessage = `Model error: ${parsed.error}`;
                 setMessages(prev => {
                   const copy = [...prev];
-                  copy[copy.length - 1].content += `\n\n*(Error: ${parsed.error})*`;
+                  copy[copy.length - 1].content = assistantContent
+                    ? `${assistantContent}\n\n${errorMessage}`
+                    : errorMessage;
                   return copy;
                 });
               }
@@ -108,9 +139,10 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
       if (err.name === 'AbortError') {
         console.log('Chat stream aborted');
       } else {
+        console.error('Chat error:', err.message);
         setMessages((prev) => {
           const copy = [...prev];
-          copy[copy.length - 1].content += "\n\n*(Error connecting to AI)*";
+          copy[copy.length - 1].content = `Error: ${err.message || 'Failed to connect to chatbot'}`;
           return copy;
         });
       }

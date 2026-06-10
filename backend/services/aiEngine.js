@@ -1,8 +1,47 @@
 const axios = require('axios');
 const User = require('../models/User');
 
-const OLLAMA_URL = process.env.OLLAMA_URL || 'http://localhost:11434/api/generate';
-const MODEL_NAME = 'phi4-mini'; // User requested this for 8GB RAM
+const MODEL_NAME = process.env.OLLAMA_MODEL || process.env.AI_MODEL || 'phi3:latest';
+
+const parseNumberOption = (value, fallback) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+};
+
+// Phi 3 runs on this machine with a 1024-token context. Higher defaults can
+// make Ollama fail during KV-cache allocation and trigger chatbot fallback.
+const OLLAMA_OPTIONS = {
+  num_ctx: parseNumberOption(process.env.OLLAMA_NUM_CTX, 1024),
+  num_predict: parseNumberOption(process.env.OLLAMA_NUM_PREDICT, 128),
+  num_batch: parseNumberOption(process.env.OLLAMA_NUM_BATCH, 64),
+  temperature: parseNumberOption(process.env.OLLAMA_TEMPERATURE, 0.7),
+  top_k: parseNumberOption(process.env.OLLAMA_TOP_K, 40),
+  top_p: parseNumberOption(process.env.OLLAMA_TOP_P, 0.9),
+};
+const OLLAMA_TIMEOUT_MS = parseNumberOption(process.env.OLLAMA_TIMEOUT_MS, 60000);
+const OLLAMA_KEEP_ALIVE = process.env.OLLAMA_KEEP_ALIVE || '10m';
+const CHAT_FALLBACK_ENABLED = process.env.ENABLE_CHAT_FALLBACK === 'true';
+
+const getOllamaUrl = (endpoint) => {
+  const explicitUrl = endpoint === 'chat'
+    ? process.env.OLLAMA_CHAT_URL
+    : process.env.OLLAMA_GENERATE_URL;
+
+  if (explicitUrl) return explicitUrl;
+
+  const rawUrl = process.env.OLLAMA_URL || process.env.OLLAMA_BASE_URL || 'http://localhost:11434';
+  const trimmedUrl = rawUrl.replace(/\/+$/, '');
+
+  if (/\/api\/(chat|generate)$/.test(trimmedUrl)) {
+    return trimmedUrl.replace(/\/api\/(chat|generate)$/, `/api/${endpoint}`);
+  }
+
+  if (trimmedUrl.endsWith('/api')) {
+    return `${trimmedUrl}/${endpoint}`;
+  }
+
+  return `${trimmedUrl}/api/${endpoint}`;
+};
 
 /**
  * Fallback local rule-based engine in case Ollama is not running.
@@ -47,11 +86,13 @@ exports.generateDailyInsights = async (userId, userContext) => {
     `;
 
     // Try Ollama
-    const response = await axios.post(OLLAMA_URL, {
+    const response = await axios.post(getOllamaUrl('generate'), {
       model: MODEL_NAME,
       prompt: prompt,
       stream: false,
-    }, { timeout: 10000 }); // 10s timeout
+      keep_alive: OLLAMA_KEEP_ALIVE,
+      options: OLLAMA_OPTIONS,
+    }, { timeout: OLLAMA_TIMEOUT_MS });
 
     if (response.data && response.data.response) {
       return response.data.response;
@@ -92,39 +133,205 @@ exports.suggestTaskTime = (taskData, userProductivityPattern) => {
 };
 
 /**
- * Finance AI Chatbot stream
+ * Generate rule-based finance answers (fallback when Ollama is unavailable)
+ */
+const ruleBasedFinanceAnswer = (userQuestion, context) => {
+  const { summary = {}, transactions = [], budgets = [], subscriptions = [], expensesByCategory = {} } = context;
+  const questionLower = userQuestion.toLowerCase();
+
+  // Balance question
+  if (questionLower.includes('balance') || questionLower.includes('how much do i have')) {
+    const balance = (summary.income || 0) - (summary.expense || 0);
+    return `Your current balance is $${balance.toFixed(2)}. You have earned $${(summary.income || 0).toFixed(2)} and spent $${(summary.expense || 0).toFixed(2)}.`;
+  }
+
+  // Income question
+  if (questionLower.includes('income') || questionLower.includes('earned')) {
+    return `Your total income is $${(summary.income || 0).toFixed(2)}.`;
+  }
+
+  // Expense question
+  if (questionLower.includes('expense') || questionLower.includes('spent') || questionLower.includes('spending')) {
+    return `Your total expenses are $${(summary.expense || 0).toFixed(2)}. Here's the breakdown by category: ${Object.entries(expensesByCategory).map(([cat, amt]) => `${cat}: $${amt.toFixed(2)}`).join(', ')}`;
+  }
+
+  // Category breakdown
+  if (questionLower.includes('category') || questionLower.includes('breakdown')) {
+    if (Object.keys(expensesByCategory).length === 0) {
+      return 'No expense data available yet.';
+    }
+    const breakdown = Object.entries(expensesByCategory)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, amt]) => `${cat}: $${amt.toFixed(2)}`)
+      .join(', ');
+    return `Here's your expense breakdown: ${breakdown}`;
+  }
+
+  // Recent transactions
+  if (questionLower.includes('recent') || questionLower.includes('latest')) {
+    if (transactions.length === 0) return 'No transactions recorded yet.';
+    const recent = transactions.slice(0, 5);
+    return `Your 5 most recent transactions:\n${recent.map(t => `- ${t.description}: $${t.amount.toFixed(2)} (${t.type})`).join('\n')}`;
+  }
+
+  // Budget question
+  if (questionLower.includes('budget')) {
+    if (budgets.length === 0) return 'You haven\'t set any budgets yet. Consider creating one to help manage spending.';
+    return `You have ${budgets.length} active budget(s). ${budgets.map(b => `${b.category}: $${b.limit}`).join(', ')}`;
+  }
+
+  // Subscriptions
+  if (questionLower.includes('subscription')) {
+    if (subscriptions.length === 0) return 'You have no active subscriptions tracked.';
+    return `You have ${subscriptions.length} subscription(s): ${subscriptions.map(s => `${s.name} ($${s.amount}/${s.billingCycle})`).join(', ')}`;
+  }
+
+  // Default helpful response
+  return `I can help you analyze your finances. You can ask me about your balance, income, expenses, budget, subscriptions, or request a breakdown by category. Your current balance is $${((summary.income || 0) - (summary.expense || 0)).toFixed(2)}.`;
+};
+
+const toMoneyNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const toISODate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString().slice(0, 10);
+};
+
+const compactFinanceContext = (context = {}) => {
+  const summary = context.summary || {};
+  const transactions = Array.isArray(context.transactions) ? context.transactions : [];
+  const budgets = Array.isArray(context.budgets) ? context.budgets : [];
+  const subscriptions = Array.isArray(context.subscriptions) ? context.subscriptions : [];
+  const expensesByCategory = context.expensesByCategory || {};
+
+  const recentTransactions = [...transactions]
+    .sort((a, b) => new Date(b.date || 0) - new Date(a.date || 0))
+    .slice(0, 4)
+    .map((transaction) => ({
+      date: toISODate(transaction.date),
+      type: transaction.type,
+      amount: toMoneyNumber(transaction.amount),
+      category: transaction.category || 'Uncategorized',
+      description: transaction.description || '',
+    }));
+
+  const topExpenseCategories = Object.entries(expensesByCategory)
+    .map(([category, amount]) => ({ category, amount: toMoneyNumber(amount) }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5);
+
+  return {
+    summary: {
+      income: toMoneyNumber(summary.income),
+      expense: toMoneyNumber(summary.expense),
+      balance: toMoneyNumber(summary.balance ?? (toMoneyNumber(summary.income) - toMoneyNumber(summary.expense))),
+    },
+    counts: {
+      transactions: transactions.length,
+      budgets: budgets.length,
+      subscriptions: subscriptions.length,
+    },
+    topExpenseCategories,
+    recentTransactions,
+    budgets: budgets.slice(0, 4).map((budget) => ({
+      category: budget.category,
+      limit: toMoneyNumber(budget.limit),
+      period: budget.period,
+    })),
+    subscriptions: subscriptions.slice(0, 4).map((subscription) => ({
+      name: subscription.name,
+      amount: toMoneyNumber(subscription.amount),
+      billingCycle: subscription.billingCycle,
+      category: subscription.category,
+      nextBillingDate: toISODate(subscription.nextBillingDate),
+    })),
+  };
+};
+
+const formatMoney = (amount) => `$${toMoneyNumber(amount).toFixed(2)}`;
+
+const compactFinanceContextText = (financeContext) => {
+  const recent = financeContext.recentTransactions
+    .map((transaction) => (
+      `${transaction.date || 'no-date'} ${transaction.type} ${formatMoney(transaction.amount)} ${transaction.category} ${transaction.description}`.trim()
+    ))
+    .join('; ') || 'none';
+
+  const categories = financeContext.topExpenseCategories
+    .map(({ category, amount }) => `${category} ${formatMoney(amount)}`)
+    .join(', ') || 'none';
+
+  const budgets = financeContext.budgets
+    .map((budget) => `${budget.category} limit ${formatMoney(budget.limit)}`)
+    .join(', ') || 'none';
+
+  const subscriptions = financeContext.subscriptions
+    .map((subscription) => `${subscription.name} ${formatMoney(subscription.amount)}/${subscription.billingCycle || 'cycle'}`)
+    .join(', ') || 'none';
+
+  return [
+    `summary income ${formatMoney(financeContext.summary.income)}, expenses ${formatMoney(financeContext.summary.expense)}, balance ${formatMoney(financeContext.summary.balance)}`,
+    `counts transactions ${financeContext.counts.transactions}, budgets ${financeContext.counts.budgets}, subscriptions ${financeContext.counts.subscriptions}`,
+    `top categories ${categories}`,
+    `recent transactions ${recent}`,
+    `budgets ${budgets}`,
+    `subscriptions ${subscriptions}`,
+  ].join('\n');
+};
+
+/**
+ * Finance AI Chatbot stream with enhanced analysis
  */
 exports.chatWithFinanceAI = async (messages, context, res) => {
-  const systemPrompt = `You are a financial advisor AI strictly embedded in the user's personal finance dashboard.
-Your ONLY purpose is to answer questions related to personal finance, budgeting, saving, and the user's provided transactions.
-If asked about programming, general knowledge, or other non-finance topics, you MUST politely decline and remind them you are a finance AI.
-
-User Context:
-${JSON.stringify(context, null, 2)}
-`;
-
-  const ollamaMessages = [
-    { role: 'system', content: systemPrompt },
-    ...messages
-  ];
-
+  // Set response headers for SSE
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
 
   try {
+    const financeContext = compactFinanceContext(context);
+    const financeContextText = compactFinanceContextText(financeContext);
+
+    const systemPrompt = `You are Finance AI inside a personal finance dashboard.
+Answer only finance questions. Use this data and do not invent missing details.
+Keep answers concise and practical. For non-finance questions, redirect to finance.
+Data:
+${financeContextText}`;
+
+    const ollamaMessages = [
+      { role: 'system', content: systemPrompt },
+      ...messages
+    ];
+
+    // Try to connect to Ollama
+    const ollamaUrl = process.env.OLLAMA_URL || 'http://localhost:11434/api/chat';
+    console.log(`[AI Engine] Attempting to connect to Ollama at ${ollamaUrl} with model: ${MODEL_NAME}...`);
+
     const response = await axios({
       method: 'post',
-      url: 'http://localhost:11434/api/chat',
+      url: ollamaUrl,
       data: {
         model: MODEL_NAME,
         messages: ollamaMessages,
-        stream: true
+        stream: true,
+        keep_alive: OLLAMA_KEEP_ALIVE,
+        options: OLLAMA_OPTIONS
       },
-      responseType: 'stream'
+      responseType: 'stream',
+      timeout: OLLAMA_TIMEOUT_MS
     });
 
+    console.log('[AI Engine] Connected to Ollama! Starting stream...');
+
+    let hasStreamed = false;
+
     response.data.on('data', (chunk) => {
+      hasStreamed = true;
       const lines = chunk.toString().split('\n').filter(line => line.trim() !== '');
       for (const line of lines) {
         try {
@@ -134,23 +341,69 @@ ${JSON.stringify(context, null, 2)}
           }
           if (parsed.done) {
             res.write(`data: [DONE]\n\n`);
-            res.end();
+            return;
           }
-        } catch(e) {}
+        } catch(e) {
+          // Ignore parse errors
+        }
       }
     });
 
     response.data.on('end', () => {
-       res.end();
+      if (hasStreamed) {
+        res.end();
+      }
     });
     
-    response.data.on('error', () => {
-      res.write(`data: [DONE]\n\n`);
-      res.end();
+    response.data.on('error', (error) => {
+      console.error('[AI Engine] Stream error:', error.message);
+      if (!hasStreamed) {
+        handleChatModelFailure(messages, context, res, error);
+      } else {
+        res.end();
+      }
     });
+
   } catch (err) {
-    console.error('[AI Engine] Chat streaming failed', err.message);
-    res.write(`data: ${JSON.stringify({ error: 'Failed to connect to AI engine' })}\n\n`);
+    console.error('[AI Engine] Chat failed:', err.message);
+    console.error('[AI Engine] Error stack:', err.stack);
+    console.error('[AI Engine] Error code:', err.code);
+    handleChatModelFailure(messages, context, res, err);
+  }
+};
+
+const handleChatModelFailure = (messages, context, res, error) => {
+  if (CHAT_FALLBACK_ENABLED) {
+    console.log('[AI Engine] Using fallback rule-based response because ENABLE_CHAT_FALLBACK=true.');
+    return useFallbackResponse(messages, context, res);
+  }
+
+  sendModelUnavailableResponse(res, error);
+};
+
+const sendModelUnavailableResponse = (res, error) => {
+  const details = error?.response?.data?.error || error?.message || 'Unknown Ollama error';
+  const message = `The local ${MODEL_NAME} model is unavailable right now. Ollama returned: ${details}`;
+
+  res.write(`data: ${JSON.stringify({ error: message })}\n\n`);
+  res.write(`data: [DONE]\n\n`);
+  res.end();
+};
+
+/**
+ * Send fallback rule-based response
+ */
+const useFallbackResponse = (messages, context, res) => {
+  try {
+    const userMessage = messages[messages.length - 1]?.content || '';
+    const fallbackAnswer = ruleBasedFinanceAnswer(userMessage, context);
+    
+    res.write(`data: ${JSON.stringify({ content: fallbackAnswer })}\n\n`);
+    res.write(`data: [DONE]\n\n`);
+    res.end();
+  } catch (err) {
+    console.error('[AI Engine] Fallback failed:', err.message);
+    res.write(`data: ${JSON.stringify({ content: 'Sorry, I encountered an error. Please try again.' })}\n\n`);
     res.write(`data: [DONE]\n\n`);
     res.end();
   }

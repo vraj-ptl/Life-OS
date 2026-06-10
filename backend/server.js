@@ -44,6 +44,14 @@ if (process.env.NODE_ENV === 'development') {
 // Rate limiting on all API routes
 app.use('/api', apiLimiter);
 
+// Debug logging for all /api/finance requests
+app.use('/api/finance', (req, res, next) => {
+  console.log(`\n📨 [Finance Route] Incoming request: ${req.method} ${req.path}`);
+  console.log(`📨 [Finance Route] Headers:`, req.headers);
+  console.log(`📨 [Finance Route] Body:`, req.body);
+  next();
+});
+
 // ─── Routes ────────────────────────────────────────
 const authRoutes = require('./routes/auth');
 const taskRoutes = require('./routes/tasks');
