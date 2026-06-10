@@ -67,7 +67,6 @@ app.use('/api/finance', financeRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
 app.use('/api/calendar', require('./routes/calendar'));
-app.use('/api/notes', require('./routes/notes'));
 app.use('/api/notifications', require('./routes/notifications'));
 
 // Health check

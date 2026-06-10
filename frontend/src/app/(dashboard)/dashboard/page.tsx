@@ -15,7 +15,7 @@ const shouldReduceMotion = () =>
   typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export default function DashboardPage() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { toast } = useToast();
   const [data, setData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -24,6 +24,12 @@ export default function DashboardPage() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
+        // Fetch latest user data to ensure XP/Level is current
+        const authRes = await api.get<any>('/auth/me');
+        if (authRes.success && authRes.data) {
+          updateUser(authRes.data.user);
+        }
+
         const res = await api.get<any>('/analytics/dashboard');
         if (res.success && res.data) {
           setData(res.data);
@@ -339,55 +345,70 @@ export default function DashboardPage() {
             </h3>
 
             {/* XP Ring */}
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
-              <div style={{ position: 'relative', width: '140px', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-                <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 100 100">
-                  {/* Background track */}
-                  <circle
-                    cx="50" cy="50" r="42"
-                    fill="none"
-                    stroke="var(--bg-input)"
-                    strokeWidth="7"
-                  />
-                  {/* Gradient definition */}
-                  <defs>
-                    <linearGradient id="xpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="var(--color-accent)" />
-                      <stop offset="100%" stopColor="var(--color-primary)" />
-                    </linearGradient>
-                  </defs>
-                  {/* Progress fill */}
-                  <circle
-                    cx="50" cy="50" r="42"
-                    fill="none"
-                    stroke="url(#xpGradient)"
-                    strokeWidth="7"
-                    strokeLinecap="round"
-                    strokeDasharray="264"
-                    strokeDashoffset={264 - (264 * (user?.xp ? (user.xp % 100) / 100 : 0))}
-                    style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
-                  />
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{
-                    fontSize: '2.2rem',
-                    fontWeight: 800,
-                    background: 'linear-gradient(135deg, var(--color-accent), var(--color-primary))',
-                    WebkitBackgroundClip: 'text',
-                    WebkitTextFillColor: 'transparent',
-                    lineHeight: 1,
-                  }}>{user?.level || 1}</span>
-                  <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>Level</span>
-                </div>
-              </div>
+            {(() => {
+              const totalXp = user?.xp || 0;
+              const currentLevel = user?.level || 1;
+              const xpInCurrentLevel = totalXp % 100;
+              const xpNeeded = 100;
+              const progressPct = xpInCurrentLevel / xpNeeded;
+              const circumference = 2 * Math.PI * 42; // ~263.9
+              const dashOffset = circumference - (circumference * progressPct);
 
-              <div style={{ textAlign: 'center' }}>
-                <p style={{ fontSize: '0.88rem', fontWeight: 600, color: 'var(--color-primary-light)', marginBottom: '4px' }}>
-                  {user?.xp ? (100 - (user.xp % 100)) : 100} XP to Level {user?.level ? user.level + 1 : 2}
-                </p>
-                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Complete tasks and habits to level up!</p>
-              </div>
-            </div>
+              return (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '28px' }}>
+                  <div style={{ position: 'relative', width: '140px', height: '140px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
+                    <svg style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)' }} viewBox="0 0 100 100">
+                      {/* Background track */}
+                      <circle
+                        cx="50" cy="50" r="42"
+                        fill="none"
+                        stroke="var(--bg-input)"
+                        strokeWidth="7"
+                      />
+                      {/* Gradient definition */}
+                      <defs>
+                        <linearGradient id="xpGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                          <stop offset="0%" stopColor="var(--color-accent)" />
+                          <stop offset="100%" stopColor="var(--color-primary)" />
+                        </linearGradient>
+                      </defs>
+                      {/* Progress fill */}
+                      <circle
+                        cx="50" cy="50" r="42"
+                        fill="none"
+                        stroke="url(#xpGradient)"
+                        strokeWidth="7"
+                        strokeLinecap="round"
+                        strokeDasharray={circumference.toFixed(2)}
+                        strokeDashoffset={dashOffset.toFixed(2)}
+                        style={{ transition: 'stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1)' }}
+                      />
+                    </svg>
+                    <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                      <span style={{
+                        fontSize: '2.2rem',
+                        fontWeight: 800,
+                        background: 'linear-gradient(135deg, var(--color-accent), var(--color-primary))',
+                        WebkitBackgroundClip: 'text',
+                        WebkitTextFillColor: 'transparent',
+                        lineHeight: 1,
+                      }}>{currentLevel}</span>
+                      <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 600 }}>Level</span>
+                    </div>
+                  </div>
+
+                  <div style={{ textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
+                      {xpInCurrentLevel} / {xpNeeded} XP
+                    </p>
+                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--color-primary-light)', marginBottom: '4px' }}>
+                      {xpNeeded - xpInCurrentLevel} XP to Level {currentLevel + 1}
+                    </p>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Total: {totalXp} XP earned</p>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Quick Stats Row */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '24px' }}>

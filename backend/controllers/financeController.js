@@ -197,18 +197,3 @@ exports.deleteSubscription = async (req, res) => {
   }
 };
 
-// --- AI CHATBOT ---
-exports.chatFinanceAI = async (req, res) => {
-  try {
-    console.log('[Finance Controller] Chat request received');
-    console.log('[Finance Controller] User ID:', req.userId);
-    console.log('[Finance Controller] Request body:', req.body);
-    const { messages, context } = req.body;
-    await aiEngine.chatWithFinanceAI(messages, context, res);
-  } catch (error) {
-    console.error('Chat AI Error:', error);
-    if (!res.headersSent) {
-      res.status(500).json({ success: false, message: 'Failed to chat' });
-    }
-  }
-};

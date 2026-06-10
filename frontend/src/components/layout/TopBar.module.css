@@ -4,7 +4,7 @@
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   padding: 0 var(--space-xl);
   position: sticky;
   top: 0;
@@ -80,18 +80,6 @@
 .iconBtn:hover {
   background: rgba(255, 255, 255, 0.05);
   color: var(--text-primary);
-}
-
-.notificationBadge {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  width: 8px;
-  height: 8px;
-  background: var(--color-danger);
-  border-radius: 50%;
-  box-shadow: 0 0 8px var(--color-danger);
-  animation: pulseScale 2s infinite;
 }
 
 .profileContainer {

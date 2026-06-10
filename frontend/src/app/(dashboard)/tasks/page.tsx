@@ -8,6 +8,7 @@ import { TaskModal } from '@/components/features/TaskModal';
 import { TaskDetailModal } from '@/components/features/TaskDetailModal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, List, Layout, Calendar as CalendarIcon, Loader2, CheckSquare, Archive } from 'lucide-react';
 import api from '@/lib/api';
 import styles from './Tasks.module.css';
@@ -30,6 +31,7 @@ export default function TasksPage() {
   const calendarDays = eachDayOfInterval({ start: startDate, end: endDate });
   
   const { toast } = useToast();
+  const { updateUser } = useAuth();
 
   const fetchTasks = async () => {
     setIsLoading(true);
@@ -139,6 +141,14 @@ export default function TasksPage() {
     
     try {
       await api.put(`/tasks/${id}`, { status: newStatus });
+      
+      // Fetch updated user data to reflect XP/Level changes
+      api.get('/auth/me').then(authRes => {
+        if (authRes.success && authRes.data) {
+          updateUser(authRes.data.user);
+        }
+      }).catch(err => console.error("Failed to update user XP", err));
+
       if (newStatus === 'done') {
         toast({ type: 'success', message: 'Task completed! +XP' });
         // Re-fetch so any newly created recurring task appears
@@ -182,6 +192,15 @@ export default function TasksPage() {
         updatePayload.status = newStatus;
       }
       await api.put(`/tasks/${id}`, updatePayload);
+      
+      // Update XP if status changed
+      if (newStatus !== task.status) {
+        api.get('/auth/me').then(authRes => {
+          if (authRes.success && authRes.data) {
+            updateUser(authRes.data.user);
+          }
+        }).catch(err => console.error("Failed to update user XP", err));
+      }
       
       if (allDone && !wasAllDone) {
         toast({ type: 'success', message: 'All subtasks done!', description: 'Task marked as completed automatically.' });

@@ -10,7 +10,6 @@ import api from '@/lib/api';
 import { TransactionCard, Transaction } from '@/components/features/TransactionCard';
 import { SubscriptionCard, Subscription } from '@/components/features/SubscriptionCard';
 import { BudgetCard, Budget } from '@/components/features/BudgetCard';
-import FinanceChatbot from '@/components/features/FinanceChatbot';
 import styles from './Finance.module.css';
 import formStyles from '@/components/features/HabitModal.module.css';
 
@@ -620,8 +619,6 @@ export default function FinancePage() {
         </div>
       </Modal>
 
-      {/* Chatbot overlay */}
-      <FinanceChatbot financeContext={data} />
     </div>
   );
 }

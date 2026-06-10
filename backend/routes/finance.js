@@ -9,8 +9,7 @@ const {
   addBudget,
   deleteBudget,
   addSubscription,
-  deleteSubscription,
-  chatFinanceAI
+  deleteSubscription
 } = require('../controllers/financeController');
 
 router.use(auth);
@@ -28,8 +27,5 @@ router.delete('/budgets/:id', mongoIdValidation, deleteBudget);
 // Subscriptions
 router.post('/subscriptions', addSubscription);
 router.delete('/subscriptions/:id', mongoIdValidation, deleteSubscription);
-
-// Chatbot
-router.post('/chat', chatFinanceAI);
 
 module.exports = router;

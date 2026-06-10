@@ -3,6 +3,7 @@ const Habit = require('../models/Habit');
 const Transaction = require('../models/Transaction');
 const Budget = require('../models/Budget');
 const Subscription = require('../models/Subscription');
+const User = require('../models/User');
 const aiEngine = require('../services/aiEngine');
 
 /**
@@ -27,6 +28,29 @@ exports.getDashboardData = async (req, res) => {
     const activeHabits = habits.length;
     const habitStreakAvg = habits.length > 0 ? (habits.reduce((acc, h) => acc + h.currentStreak, 0) / habits.length) : 0;
     const brokenHabits = habits.filter(h => h.currentStreak === 0 && h.logs.length > 0).length;
+
+    // --- XP Sync: Recalculate from actual completed tasks & habit logs ---
+    try {
+      const totalCompletedTasks = await Task.countDocuments({ userId, status: 'done' });
+      let totalCompletedHabitLogs = 0;
+      habits.forEach(h => {
+        if (h.logs && h.logs.length > 0) {
+          totalCompletedHabitLogs += h.logs.filter(l => l.isCompleted).length;
+        }
+      });
+
+      const calculatedXp = (totalCompletedTasks * 10) + (totalCompletedHabitLogs * 5);
+      const calculatedLevel = Math.floor(calculatedXp / 100) + 1;
+
+      const user = await User.findById(userId);
+      if (user && user.xp !== calculatedXp) {
+        user.xp = calculatedXp;
+        user.level = calculatedLevel;
+        await user.save();
+      }
+    } catch (xpErr) {
+      console.error('XP sync error (non-fatal):', xpErr);
+    }
     
     // Finance
     const monthlyTransactions = await Transaction.find({ userId, date: { $gte: startOfMonth } });

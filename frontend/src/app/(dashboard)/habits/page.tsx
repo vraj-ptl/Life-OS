@@ -7,6 +7,7 @@ import { HabitModal } from '@/components/features/HabitModal';
 import { HabitDetailModal } from '@/components/features/HabitDetailModal';
 import { Button } from '@/components/ui/Button';
 import { useToast } from '@/components/ui/Toast';
+import { useAuth } from '@/contexts/AuthContext';
 import { Plus, Flame, Target, Loader2, Sunrise, Sun, Moon, Clock, Trophy } from 'lucide-react';
 import api from '@/lib/api';
 import styles from './Habits.module.css';
@@ -18,6 +19,7 @@ export default function HabitsPage() {
   const [editingHabit, setEditingHabit] = useState<any>(null);
   const [viewingHabit, setViewingHabit] = useState<any>(null);
   const { toast } = useToast();
+  const { updateUser } = useAuth();
 
   const todayStr = new Date().toISOString().split('T')[0];
 
@@ -66,6 +68,14 @@ export default function HabitsPage() {
       const res = await api.put<{ habit: any, isCompleted: boolean }>(`/habits/${id}/toggle`, { date, progress });
       if (res.success && res.data) {
         setHabits(prev => prev.map(h => h._id === id ? res.data?.habit : h));
+        
+        // Refresh user XP/Level in AuthContext
+        api.get('/auth/me').then(authRes => {
+          if (authRes.success && authRes.data) {
+            updateUser(authRes.data.user);
+          }
+        }).catch(err => console.error('Failed to update user XP', err));
+
         if (res.data.isCompleted) {
           toast({ type: 'success', message: 'Habit completed! Keep the streak going!' });
         }
