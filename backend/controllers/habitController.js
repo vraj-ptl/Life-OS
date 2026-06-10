@@ -1,5 +1,6 @@
 const { validationResult } = require('express-validator');
 const Habit = require('../models/Habit');
+const User = require('../models/User');
 
 // Helper to get normalized date (YYYY-MM-DD at 00:00:00Z)
 const getNormalizedDate = (dateString) => {
@@ -99,6 +100,7 @@ exports.toggleHabit = async (req, res) => {
     // Find if log exists for date
     const logIndex = habit.logs.findIndex(log => new Date(log.date).getTime() === targetTime);
     let currentLog = logIndex >= 0 ? habit.logs[logIndex] : null;
+    const wasCompleted = currentLog ? currentLog.isCompleted : false;
 
     if (habit.trackingType === 'boolean') {
       if (currentLog && currentLog.isCompleted) {
@@ -138,6 +140,25 @@ exports.toggleHabit = async (req, res) => {
         currentLog = { date: targetDate, progress: newProgress, isCompleted, completedAt: isCompleted ? new Date() : undefined };
         habit.logs.push(currentLog);
       }
+    }
+
+    // Award or Revert XP if completion status changed
+    try {
+      const isCompletedNow = currentLog ? currentLog.isCompleted : false;
+      if (wasCompleted !== isCompletedNow) {
+        const user = await User.findById(req.userId);
+        if (user) {
+          if (isCompletedNow) {
+            user.xp += 5; // 5 XP for habit
+          } else {
+            user.xp = Math.max(0, user.xp - 5);
+          }
+          user.level = Math.floor(user.xp / 100) + 1;
+          await user.save();
+        }
+      }
+    } catch (err) {
+      console.error('Error updating XP for habit:', err);
     }
 
     // Recalculate streak based on completed logs

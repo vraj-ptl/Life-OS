@@ -46,6 +46,13 @@ export default function FinancePage() {
     date: new Date().toISOString().split('T')[0]
   });
 
+  const [filterType, setFilterType] = useState<'all' | 'month' | 'date'>('all');
+  const [filterMonth, setFilterMonth] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  });
+  const [filterDate, setFilterDate] = useState(() => new Date().toISOString().split('T')[0]);
+
   const { toast } = useToast();
 
   const fetchFinanceData = async () => {
@@ -187,6 +194,28 @@ export default function FinancePage() {
     if (availableBudget <= 0) return 0;
     return availableBudget / daysLeft;
   }, [currentMonthStats, data.transactions]);
+
+  const sortedAndFilteredTransactions = useMemo(() => {
+    let filtered = [...data.transactions];
+    if (filterType === 'month') {
+      filtered = filtered.filter((tx: any) => {
+        const d = new Date(tx.date);
+        const txMonth = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        return txMonth === filterMonth;
+      });
+    } else if (filterType === 'date') {
+      filtered = filtered.filter((tx: any) => {
+        return new Date(tx.date).toISOString().split('T')[0] === filterDate;
+      });
+    }
+    // Sort descending by date, then by createdAt if date is identical
+    return filtered.sort((a: any, b: any) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      // If dates are identical (e.g., both 2026-06-10T00:00:00.000Z), sort by creation time
+      return new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime();
+    });
+  }, [data.transactions, filterType, filterMonth, filterDate]);
 
   // Smart Insights generator - DETAILED version
   const smartInsights = useMemo(() => {
@@ -354,11 +383,41 @@ export default function FinancePage() {
                         <h3 className={styles.sectionTitle} style={{ marginBottom: 0 }}>Recent Activity</h3>
                         {data.transactions.length > 0 && <Button variant="ghost" size="sm" onClick={() => setIsHistoryModalOpen(true)}>View All</Button>}
                       </div>
+                      
+                      <div style={{ display: 'flex', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
+                        <select 
+                          value={filterType} 
+                          onChange={(e: any) => setFilterType(e.target.value)}
+                          style={{ padding: '6px 12px', borderRadius: '6px', background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.85rem' }}
+                        >
+                          <option value="all">All Time</option>
+                          <option value="month">By Month</option>
+                          <option value="date">By Date</option>
+                        </select>
+                        
+                        {filterType === 'month' && (
+                          <input 
+                            type="month" 
+                            value={filterMonth} 
+                            onChange={(e) => setFilterMonth(e.target.value)}
+                            style={{ padding: '6px 12px', borderRadius: '6px', background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.85rem' }}
+                          />
+                        )}
+                        {filterType === 'date' && (
+                          <input 
+                            type="date" 
+                            value={filterDate} 
+                            onChange={(e) => setFilterDate(e.target.value)}
+                            style={{ padding: '6px 12px', borderRadius: '6px', background: 'rgba(30, 41, 59, 0.8)', border: '1px solid rgba(255,255,255,0.1)', color: 'white', fontSize: '0.85rem' }}
+                          />
+                        )}
+                      </div>
+
                       <div className="flex flex-col gap-4">
-                        {data.transactions.length === 0 ? (
-                           <div className="text-center py-10 text-muted">No transactions yet.</div>
+                        {sortedAndFilteredTransactions.length === 0 ? (
+                           <div className="text-center py-10 text-muted">No transactions found for this filter.</div>
                         ) : (
-                          data.transactions.slice(0, 10).map((tx: Transaction) => (
+                          sortedAndFilteredTransactions.slice(0, 10).map((tx: Transaction) => (
                             <TransactionCard key={tx._id} transaction={tx} onDelete={handleDeleteTransaction} />
                           ))
                         )}
@@ -389,13 +448,13 @@ export default function FinancePage() {
 
             {/* Right Column */}
             <div className={styles.scrollableColumn}>
-              <div className={styles.panel} style={{ padding: 0, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className={styles.panel} style={{ padding: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%', maxHeight: 'calc(100vh - 120px)' }}>
+                <div style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', flexShrink: 0 }}>
                   <TabButton active={rightTab === 'insights'} onClick={() => setRightTab('insights')} icon={<PieChart size={16}/>} label="Overview & Insights" />
                   <TabButton active={rightTab === 'planning'} onClick={() => setRightTab('planning')} icon={<Wallet size={16}/>} label="Budgets" />
                 </div>
 
-                <div style={{ padding: '24px' }}>
+                <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
                   {rightTab === 'insights' && (
                     <div className="flex flex-col gap-8">
                       <div className="flex flex-col gap-4">
@@ -557,7 +616,7 @@ export default function FinancePage() {
       {/* Transaction History Modal */}
       <Modal isOpen={isHistoryModalOpen} onClose={() => setIsHistoryModalOpen(false)} title="Transaction History" size="lg">
         <div className="flex flex-col gap-4" style={{ maxHeight: '60vh', overflowY: 'auto', paddingRight: '8px' }}>
-          {data.transactions.map((tx: Transaction) => <TransactionCard key={tx._id} transaction={tx} onDelete={handleDeleteTransaction} />)}
+          {sortedAndFilteredTransactions.map((tx: Transaction) => <TransactionCard key={tx._id} transaction={tx} onDelete={handleDeleteTransaction} />)}
         </div>
       </Modal>
 

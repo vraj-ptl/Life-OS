@@ -91,6 +91,11 @@ export default function FinanceChatbot({ financeContext }: { financeContext: any
                 });
               } else if (parsed.error) {
                 console.error(parsed.error);
+                setMessages(prev => {
+                  const copy = [...prev];
+                  copy[copy.length - 1].content += `\n\n*(Error: ${parsed.error})*`;
+                  return copy;
+                });
               }
             } catch (e) {
               // Ignore incomplete JSON parses and wait for more data

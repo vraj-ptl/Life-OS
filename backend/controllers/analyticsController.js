@@ -20,26 +20,39 @@ exports.getDashboardData = async (req, res) => {
     // Tasks
     const pendingTasks = await Task.countDocuments({ userId, status: { $in: ['todo', 'in-progress'] } });
     const completedTasksLastWeek = await Task.countDocuments({ userId, status: 'done', completedAt: { $gte: oneWeekAgo } });
+    const overdueTasks = await Task.countDocuments({ userId, status: 'overdue' });
     
     // Habits
     const habits = await Habit.find({ userId });
     const activeHabits = habits.length;
     const habitStreakAvg = habits.length > 0 ? (habits.reduce((acc, h) => acc + h.currentStreak, 0) / habits.length) : 0;
+    const brokenHabits = habits.filter(h => h.currentStreak === 0 && h.logs.length > 0).length;
     
     // Finance
     const monthlyTransactions = await Transaction.find({ userId, date: { $gte: startOfMonth } });
     const totalIncome = monthlyTransactions.filter(t => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
     const totalExpenses = monthlyTransactions.filter(t => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
 
+    const Budget = require('../models/Budget');
+    const budgets = await Budget.find({ userId });
+    let budgetOverruns = 0;
+    budgets.forEach(b => {
+      const spent = monthlyTransactions.filter(t => t.type === 'expense' && t.category === b.category).reduce((sum, t) => sum + t.amount, 0);
+      if (spent > b.monthlyLimit) budgetOverruns++;
+    });
+
     // Context object for AI
     const userContext = {
       stats: {
         pendingTasks,
         completedTasksLastWeek,
+        overdueTasks,
         activeHabits,
         habitStreakAvg,
+        brokenHabits,
         totalIncome,
-        totalExpenses
+        totalExpenses,
+        budgetOverruns
       }
     };
 

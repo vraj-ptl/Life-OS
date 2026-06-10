@@ -159,7 +159,7 @@ export default function AnalyticsPage() {
             <NumericalInsights data={data.numericalSummaries} />
           </div>
 
-          <div className={styles.chartsGrid}>
+          <div className={styles.fullWidthGrid}>
             <FinancialChart data={data.timelineData} />
             <HabitConsistencyChart data={data.timelineData} />
           </div>
@@ -169,7 +169,7 @@ export default function AnalyticsPage() {
             <SubscriptionBreakdownChart data={data.subscriptionBreakdown} />
           </div>
 
-          <div className={styles.chartsGrid}>
+          <div className={styles.fullWidthGrid}>
              <EnergyMatrixChart data={data.timelineData} />
           </div>
 

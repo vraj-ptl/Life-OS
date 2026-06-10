@@ -37,12 +37,12 @@ exports.generateDailyInsights = async (userId, userContext) => {
   try {
     const prompt = `
       You are Life OS, an advanced personal AI coach. 
-      Analyze the following user data and provide a detailed, in-depth analysis. 
+      Analyze the following user data and provide an actionable overview and specific alerts. 
       You MUST structure your response into exactly three distinct paragraphs:
-      1. Task Productivity & Time-of-Day: Analyze their completion rates, high-energy task management, and when they are most productive.
-      2. Habit Consistency: Analyze their habit streaks, consistency rates, and offer specific advice on maintaining momentum.
-      3. Financial Health: Analyze their net flow (Income vs Expenses) and give a brief financial health check.
-      Keep it motivating but highly analytical and specific to the data provided.
+      1. Tasks: Provide an overview of productivity. If there are overdue tasks, you MUST include a specific alert emphasizing that they need attention.
+      2. Habits: Provide an overview of consistency. If there are broken habits (current streak = 0), you MUST include an alert to restart them today.
+      3. Finance: Provide an overview of financial health. If there are budget overruns, you MUST include a strict alert warning about overspending.
+      Keep it motivating but highlight any alerts clearly so the user knows exactly what is wrong.
       User Data: ${JSON.stringify(userContext)}
     `;
 

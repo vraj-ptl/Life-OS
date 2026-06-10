@@ -25,7 +25,7 @@
 /* ─── Stat Cards Grid ──────────────────────────────────────────── */
 .statsGrid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--space-lg);
 }
 
@@ -81,6 +81,17 @@
 
 /* ─── Charts Grid ──────────────────────────────────────────────── */
 .chartsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2xl);
+}
+
+@media (max-width: 1024px) {
+  .chartsGrid { grid-template-columns: 1fr; }
+}
+
+/* ─── Full Width Grid ──────────────────────────────────────────── */
+.fullWidthGrid {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-2xl);

@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const Task = require('../models/Task');
 const ActivityLog = require('../models/ActivityLog');
+const User = require('../models/User');
 
 /**
  * @desc    Get all tasks for user
@@ -106,10 +107,34 @@ exports.updateTask = async (req, res) => {
     const isCompleting = newStatus === 'done' && prevStatus !== 'done';
     if (isCompleting) {
       req.body.completedAt = new Date();
+      // Add XP for completing a task
+      try {
+        const user = await User.findById(req.userId);
+        if (user) {
+          user.xp += 10;
+          user.level = Math.floor(user.xp / 100) + 1;
+          await user.save();
+        }
+      } catch (err) {
+        console.error('Error updating XP:', err);
+      }
     }
 
     // Check if status is being REVERTED from 'done' to something else
     const isReverting = prevStatus === 'done' && newStatus && newStatus !== 'done';
+    if (isReverting) {
+      // Remove XP
+      try {
+        const user = await User.findById(req.userId);
+        if (user) {
+          user.xp = Math.max(0, user.xp - 10);
+          user.level = Math.floor(user.xp / 100) + 1;
+          await user.save();
+        }
+      } catch (err) {
+        console.error('Error reverting XP:', err);
+      }
+    }
 
     // Check if task is becoming overdue
     const isBecomingOverdue = newStatus === 'overdue' && prevStatus !== 'overdue';
