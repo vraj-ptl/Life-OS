@@ -1,0 +1,87 @@
+/* ─── Google Sign-In Button ─────────────────────────────────────────
+   Follows Google's official branding guidelines for Sign-In buttons.
+   Reference: https://developers.google.com/identity/branding-guidelines
+───────────────────────────────────────────────────────────────────── */
+
+.googleBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 52px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  color: #3c4043;
+  font-family: 'Roboto', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.25px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow:
+    0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.googleBtn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  opacity: 0;
+  background: rgba(66, 133, 244, 0.06);
+  transition: opacity 0.2s ease;
+}
+
+.googleBtn:hover:not(:disabled) {
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.12),
+    0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.googleBtn:hover:not(:disabled)::before {
+  opacity: 1;
+}
+
+.googleBtn:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.googleBtn:focus-visible {
+  outline: 2px solid #4285F4;
+  outline-offset: 2px;
+}
+
+.googleBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.3);
+}
+
+/* ─── Icon Wrapper ──────────────────────────────────────────── */
+.iconWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.googleIcon {
+  width: 20px;
+  height: 20px;
+}
+
+/* ─── Label ─────────────────────────────────────────────────── */
+.label {
+  white-space: nowrap;
+  line-height: 1;
+}

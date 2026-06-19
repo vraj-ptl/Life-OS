@@ -212,6 +212,21 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
+    // Validate SMTP configuration before attempting to send
+    const smtpUser = process.env.SMTP_USER;
+    const smtpPass = process.env.SMTP_PASS;
+    if (
+      !smtpUser || !smtpPass ||
+      smtpUser === 'your_email@gmail.com' ||
+      smtpPass === 'your_app_password'
+    ) {
+      console.error('ForgotPassword error: SMTP credentials not configured in .env');
+      return res.status(500).json({
+        success: false,
+        message: 'Email service is not configured. Please contact support.',
+      });
+    }
+
     // Generate OTP
     const otp = generateOtp();
     
@@ -224,7 +239,30 @@ exports.forgotPassword = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // Send OTP email
-    await sendOtpEmail(email, otp, user.name);
+    try {
+      await sendOtpEmail(email, otp, user.name);
+    } catch (emailError) {
+      // Clear the OTP since we couldn't send the email
+      user.resetOtp = undefined;
+      user.resetOtpExpiry = undefined;
+      await user.save({ validateBeforeSave: false });
+
+      console.error('ForgotPassword email send error:', emailError.message || emailError);
+
+      // Provide specific error message based on failure type
+      const errMsg = (emailError.message || '').toLowerCase();
+      if (errMsg.includes('invalid login') || errMsg.includes('auth') || errMsg.includes('credentials')) {
+        return res.status(500).json({
+          success: false,
+          message: 'Email authentication failed. Please check SMTP credentials.',
+        });
+      }
+
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP email. Please try again later.',
+      });
+    }
 
     res.json({
       success: true,

@@ -29,6 +29,7 @@
 .collapsed .header {
   padding: 0;
   justify-content: center;
+  gap: 4px;
 }
 
 .logo {
@@ -66,10 +67,6 @@
 .collapseBtn:hover {
   background: rgba(255, 255, 255, 0.1);
   color: var(--text-primary);
-}
-
-.collapsed .collapseBtn {
-  display: none;
 }
 
 .nav {

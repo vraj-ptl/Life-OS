@@ -68,7 +68,9 @@ export default function ForgotPasswordPage() {
       toast({ type: 'success', message: 'OTP Sent', description: 'Check your email for the verification code.' });
       animateStepTransition(2);
     } catch (err: any) {
-      setError(err.message || 'Failed to send OTP');
+      const msg = err.message || 'Failed to send OTP';
+      setError(msg);
+      toast({ type: 'error', message: 'OTP Failed', description: msg });
     } finally {
       setIsLoading(false);
     }
