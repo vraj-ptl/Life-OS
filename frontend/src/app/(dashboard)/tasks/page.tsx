@@ -143,7 +143,7 @@ export default function TasksPage() {
       await api.put(`/tasks/${id}`, { status: newStatus });
       
       // Fetch updated user data to reflect XP/Level changes
-      api.get('/auth/me').then(authRes => {
+      api.get<{ user: any }>('/auth/me').then(authRes => {
         if (authRes.success && authRes.data) {
           updateUser(authRes.data.user);
         }
@@ -195,7 +195,7 @@ export default function TasksPage() {
       
       // Update XP if status changed
       if (newStatus !== task.status) {
-        api.get('/auth/me').then(authRes => {
+        api.get<{ user: any }>('/auth/me').then(authRes => {
           if (authRes.success && authRes.data) {
             updateUser(authRes.data.user);
           }

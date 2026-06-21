@@ -292,9 +292,7 @@ export const TaskCard = ({
       return;
     }
 
-    if (task.status !== 'todo') {
-      onStatusChange(task._id, 'done');
-    }
+    onStatusChange(task._id, 'done');
   };
 
   const shouldReduceMotion = () =>

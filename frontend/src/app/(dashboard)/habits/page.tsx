@@ -70,7 +70,7 @@ export default function HabitsPage() {
         setHabits(prev => prev.map(h => h._id === id ? res.data?.habit : h));
         
         // Refresh user XP/Level in AuthContext
-        api.get('/auth/me').then(authRes => {
+        api.get<{ user: any }>('/auth/me').then(authRes => {
           if (authRes.success && authRes.data) {
             updateUser(authRes.data.user);
           }
