@@ -73,7 +73,7 @@ export default function LoginPage() {
     try {
       localStorage.removeItem('life-os-token');
       localStorage.removeItem('life-os-user');
-      const res = await api.get<{url: string}>('/auth/google/url');
+      const res = await api.get<{url: string}>('/auth/oauth/g/url');
       if (res.success && res.data?.url) {
         window.location.href = res.data.url;
       }

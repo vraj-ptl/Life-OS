@@ -31,8 +31,8 @@ router.post('/verify-otp', otpLimiter, verifyOtpValidation, verifyOtp);
 router.post('/reset-password', otpLimiter, resetPasswordValidation, resetPassword);
 
 // Google OAuth routes
-router.get('/google/url', getGoogleAuthUrl);
-router.post('/google/callback', googleAuthCallback);
+router.get('/oauth/g/url', getGoogleAuthUrl);
+router.post('/oauth/g/callback', googleAuthCallback);
 
 // Protected routes
 router.get('/me', auth, getMe);

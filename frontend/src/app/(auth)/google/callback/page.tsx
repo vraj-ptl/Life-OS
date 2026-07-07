@@ -39,7 +39,7 @@ function GoogleCallbackContent() {
 
     const authenticate = async () => {
       try {
-        const res = await api.post<any>('/auth/google/callback', { code });
+        const res = await api.post<any>('/auth/oauth/g/callback', { code });
         
         if (res.success && res.data) {
           toast({ type: 'success', message: 'Successfully logged in with Google!' });
