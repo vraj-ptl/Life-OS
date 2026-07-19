@@ -1,6 +1,5 @@
 # ⚡ Life OS
 
-![Life OS Banner](https://via.placeholder.com/1200x400.png?text=Life+OS+-+AI-Powered+Life+Administration)
 
 **Life OS** is a comprehensive, AI-powered, gamified life administration system designed to help you manage tasks, track habits, monitor finances, and analyze productivity—all from a single, unified interface. By integrating local AI, Life OS serves as a smart assistant, making personal organization proactive, insightful, and engaging.
 
