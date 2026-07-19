@@ -1,106 +1,109 @@
 # ⚡ Life OS
 
-**Life OS** is an AI-powered, gamified life administration system designed to help you manage your tasks, track habits, monitor finances, and analyze your productivity—all in one place. It integrates local AI to serve as a smart assistant, making your life organization proactive and intelligent.
+![Life OS Banner](https://via.placeholder.com/1200x400.png?text=Life+OS+-+AI-Powered+Life+Administration)
+
+**Life OS** is a comprehensive, AI-powered, gamified life administration system designed to help you manage tasks, track habits, monitor finances, and analyze productivity—all from a single, unified interface. By integrating local AI, Life OS serves as a smart assistant, making personal organization proactive, insightful, and engaging.
+
+### 🌐 Live Deployment
+Experience the live application here: **[Life OS Frontend](https://life-os-frontend-mu.vercel.app)**
 
 ---
 
-## 🌟 Key Features & Workflow
+## 🌟 Core Features & Workflow
+
+Life OS is designed to be the central hub for your daily activities. Here is how the system works to streamline your life:
 
 ### 1. Smart Task Management
-- Create, update, and manage daily tasks.
-- Prioritize items and track their completion statuses.
-- Gain XP (experience points) for completing tasks to level up your profile!
+- **Workflow:** Users can create, update, and categorize daily tasks. Tasks can be prioritized, and their completion status is tracked in real-time.
+- **Gamification:** Completing tasks rewards you with Experience Points (XP), allowing you to level up your profile and unlocking visual achievements, transforming mundane tasks into an engaging game.
 
 ### 2. Habit Tracking & Heatmaps
-- Build and monitor daily routines and habits.
-- Visual heatmaps (similar to GitHub contributions) track your consistency over time.
+- **Workflow:** Build and monitor daily routines. The system tracks your consistency over time.
+- **Visualization:** Visual heatmaps (similar to GitHub contribution graphs) provide a quick overview of your habit streaks and overall consistency.
 
 ### 3. Personal Finance & Budgeting
-- Track income and expenses easily.
-- Integrated **Finance AI Assistant** that analyzes your spending patterns and offers personalized budgeting recommendations.
+- **Workflow:** Easily log income and expenses. The integrated **Finance AI Assistant** analyzes your spending patterns, categorizes expenses, and offers personalized budgeting recommendations to optimize your financial health.
 
 ### 4. Comprehensive Analytics
-- A centralized dashboard visualizing your performance, energy matrix, and task completion rates.
-- Charts and metric breakdowns to show exactly where your time and money go.
+- **Workflow:** A centralized dashboard aggregates data from tasks, habits, and finances.
+- **Visualization:** Beautiful charts and metric breakdowns (powered by Recharts) visualize your performance, energy matrix, and task completion rates, showing exactly where your time and money go.
 
-### 5. Gamified User Experience
-- Earn XP, level up, and unlock visual achievements as you interact with your Life OS.
-- A sleek, dynamic dark-mode UI powered by CSS Modules and GSAP micro-animations for a premium feel.
-
-### 6. Robust Authentication
-- Secure JWT-based email/password authentication.
-- **One-Time Password (OTP)** recovery flow for forgotten passwords.
-- **Google OAuth 2.0** integration for seamless one-click sign-in.
+### 5. Robust Authentication & Security
+- **Workflow:** Secure access to your personal data through JWT-based email/password authentication or seamless **Google OAuth 2.0** one-click sign-in.
+- **Recovery:** Integrated One-Time Password (OTP) recovery flow for forgotten passwords.
 
 ---
 
 ## 🛠️ Technology Stack
 
-**Frontend:**
-- **Framework:** Next.js (App Router) & React
-- **Styling:** Vanilla CSS Modules with custom CSS variables (a custom, deeply-themed design system, entirely independent of Tailwind)
-- **Animations:** GSAP (GreenSock Animation Platform)
-- **Icons:** Lucide React
+Life OS is built with a modern, robust, and scalable technology stack, divided into a decoupled frontend and backend architecture.
 
-**Backend:**
-- **Environment:** Node.js & Express.js
-- **Database:** MongoDB & Mongoose
-- **Authentication:** JWT (JSON Web Tokens) & Google OAuth2 API
-- **Emails:** Nodemailer (SMTP) for OTP password resets and welcome emails
+### Frontend
+- **Framework:** **Next.js (App Router)** & **React** for server-side rendering, routing, and building interactive UIs.
+- **Styling:** **Vanilla CSS Modules** with a custom, deeply-themed design system and CSS variables. Ensures scoped styling without relying on utility classes like Tailwind.
+- **Animations:** **GSAP (GreenSock Animation Platform)** for smooth, premium micro-animations and dynamic UI interactions.
+- **Data Visualization:** **Recharts** for rendering responsive and composable charts in the analytics dashboard.
+- **Icons & Utilities:** **Lucide React** for beautiful SVG icons, **Axios** for HTTP requests, and **date-fns** for precise date manipulation.
 
-**AI Integration:**
-- **Engine:** Ollama (running `phi3:latest` model locally) for privacy-focused AI chatbots and financial assistants.
+### Backend
+- **Environment:** **Node.js** & **Express.js** providing a fast and minimalist web framework for the API.
+- **Database:** **MongoDB** with **Mongoose** ODM for flexible, document-based data modeling.
+- **Authentication:** **JSON Web Tokens (JWT)** for stateless session management, and **Google APIs** for OAuth2 integration.
+- **Security:** **Helmet** for securing HTTP headers, **Bcrypt.js** for password hashing, and **Express Rate Limit** to prevent brute-force attacks.
+- **Email Services:** **Nodemailer** (SMTP) for sending transactional emails, such as OTPs and welcome messages.
+- **Validation:** **Express Validator** for robust API request data validation.
+
+### AI Integration
+- **Engine:** **Ollama** running the `phi3:latest` model locally. This provides privacy-focused, on-device AI capabilities for the smart chatbots and financial assistants without sending personal data to external APIs.
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Getting Started Locally
 
-Follow these steps to run the project locally. 
+Follow these steps to set up and run the project on your local machine.
 
 ### 1. Prerequisites
-- **Node.js** (v18+)
-- **MongoDB** cluster (or local MongoDB instance)
-- **Ollama** installed locally (if you wish to use the AI features) with the `phi3` model pulled (`ollama run phi3`).
+- **Node.js** (v18 or higher)
+- **MongoDB** cluster (Atlas) or local MongoDB instance
+- **Ollama** installed locally with the `phi3` model pulled. Run `ollama run phi3` in your terminal to download and start the model.
 
 ### 2. Installation
-Clone the repository and install all dependencies for both frontend and backend simultaneously from the root directory:
+Clone the repository and install dependencies for both the frontend and backend from the root directory:
 ```bash
+git clone https://github.com/yourusername/life-os.git
+cd life-os
 npm run install-all
 ```
 
-### 3. Environment Setup
+### 3. Environment Configuration
 
 #### Backend Setup
-1. Copy `backend/.env.example` to `backend/.env`.
-2. Fill in your credentials:
+1. Navigate to the `backend` directory and copy `.env.example` to `.env`.
+2. Configure the following environment variables:
    - `MONGO_URI`: Your MongoDB connection string.
-   - `JWT_SECRET`: A secure random string for JSON Web Tokens.
-   - `SMTP_USER` & `SMTP_PASS`: Your Gmail address and a 16-character **Google App Password** for sending OTPs.
-   - `FRONTEND_URL=http://localhost:3000` (for local development)
-   - `ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000`
+   - `JWT_SECRET`: A secure random string for signing JWTs.
+   - `SMTP_USER` & `SMTP_PASS`: Your email address and App Password for Nodemailer.
+   - `FRONTEND_URL`: `http://localhost:3000` (for local development).
+   - `ALLOWED_ORIGINS`: `http://localhost:3000,http://127.0.0.1:3000`
+   - `GOOGLE_CLIENT_ID` & `GOOGLE_CLIENT_SECRET`: From your Google Cloud Console OAuth 2.0 Client credentials.
 
 #### Frontend Setup
-1. Copy `frontend/.env.example` to `frontend/.env.local`.
-2. The default local values use a Next.js rewrite proxy to prevent CORS issues:
+1. Navigate to the `frontend` directory and copy `.env.example` to `.env.local`.
+2. Configure the following variables (uses Next.js rewrites by default for local dev):
    - `NEXT_PUBLIC_API_URL=/api`
    - `BACKEND_INTERNAL_URL=http://127.0.0.1:5000`
-*(Note: For production or split-host deployments, set `NEXT_PUBLIC_API_URL` to your full public backend URL and rebuild the frontend).*
 
-### 4. Google Sign-In Setup
-To enable the "Sign in with Google" button:
-1. Go to the **Google Cloud Console**.
-2. Create an **OAuth 2.0 Client ID** (Web application type).
-3. Add your exact redirect URI (e.g., `http://localhost:3000/google/callback`).
-4. Copy the Client ID and Client Secret into your `backend/.env` file (`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`).
-5. *Note:* While the OAuth app is in "Testing" mode in Google Cloud, you must manually add your tester email accounts in the OAuth consent screen.
-6. If the redirect URI, `FRONTEND_URL`, or Client credentials do not match exactly, Google sign-in will fail.
-
-### 5. Running the Application
-You can run both the frontend and backend servers concurrently with a single command from the **root directory**:
+### 4. Running the Application
+Start both the frontend and backend development servers concurrently from the **root directory**:
 
 ```bash
 npm run dev
 ```
 
-- **Frontend** will be available at: `http://localhost:3000`
-- **Backend API** will be running at: `http://localhost:5000`
+- **Frontend Application:** [http://localhost:3000](http://localhost:3000)
+- **Backend API:** [http://localhost:5000](http://localhost:5000)
+
+---
+
+## 📄 License
+This project is licensed under the MIT License.
